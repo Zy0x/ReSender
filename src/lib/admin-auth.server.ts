@@ -4,6 +4,16 @@ import type { Env } from "@/lib/tg/types";
 
 export type AdminRole = "admin" | "viewer" | null;
 
+export function normalizeEmail(value: string | null | undefined): string {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+export function isOwnerAdminEmail(userEmail: string | null | undefined, ownerEmail: string | null | undefined): boolean {
+  const normalizedUserEmail = normalizeEmail(userEmail);
+  const normalizedOwnerEmail = normalizeEmail(ownerEmail);
+  return normalizedUserEmail.length > 0 && normalizedUserEmail === normalizedOwnerEmail;
+}
+
 export function makeServiceClient(env: Pick<Env, "SUPABASE_URL" | "SUPABASE_SERVICE_ROLE_KEY">) {
   return createClient(env.SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { persistSession: false, autoRefreshToken: false },
@@ -35,4 +45,17 @@ export async function getAppRole(db: SupabaseClient, userId: string): Promise<Ad
     .maybeSingle();
   if (error) throw error;
   return (data?.role as AdminRole | undefined) ?? null;
+}
+
+export async function isAppAdmin(db: SupabaseClient, userId: string): Promise<boolean> {
+  const role = await getAppRole(db, userId);
+  if (role !== "admin") return false;
+
+  const { data, error } = await db
+    .from("app_owner")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.user_id === userId;
 }

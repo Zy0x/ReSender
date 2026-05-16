@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { getAppRole, makeServiceClient, requireSupabaseUser } from "@/lib/admin-auth.server";
+import { getAppRole, isAppAdmin, makeServiceClient, requireSupabaseUser } from "@/lib/admin-auth.server";
 import { publicConfigErrorResponse, readAdminAuthEnv } from "@/lib/tg/env.server";
 
 export const Route = createFileRoute("/api/admin/me")({
@@ -20,11 +20,12 @@ export const Route = createFileRoute("/api/admin/me")({
 
         try {
           const role = await getAppRole(db, user.id);
+          const isAdmin = await isAppAdmin(db, user.id);
           return Response.json({
             ok: true,
             user: { id: user.id, email: user.email ?? null },
             role,
-            isAdmin: role === "admin",
+            isAdmin,
           });
         } catch (error) {
           console.error("admin role lookup failed", error);

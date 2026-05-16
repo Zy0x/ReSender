@@ -13,6 +13,7 @@ const SKIP_DIRS = new Set([
   "dist",
   "dist-ssr",
   ".output",
+  ".netlify",
   ".vinxi",
   ".tanstack",
   ".wrangler",
@@ -32,6 +33,7 @@ const SCANNED_EXTENSIONS = new Set([
 const SECRET_ASSIGNMENT =
   /^\s*([A-Z0-9_]*(?:SERVICE_ROLE|PASSWORD|SECRET|TOKEN|API_KEY|PRIVATE|SUPABASE_SERVICE|TELEGRAM_BOT_TOKEN|CRON_SECRET|CLOUDFLARE_API_TOKEN|SUPABASE_ACCESS_TOKEN)[A-Z0-9_]*)\s*[:=]\s*["']?([^"'\s#]+)?/i;
 const ALLOWED_VALUE = /^(|replace-with-|PROJECT_REF|YOUR_|example|placeholder|null|undefined)$/i;
+const ALLOWED_SECRET_REFERENCE = /\$\{\{\s*secrets\.[A-Z0-9_]+\s*\}\}/i;
 
 async function walk(dir) {
   const entries = await readdir(dir, { withFileTypes: true });
@@ -58,7 +60,7 @@ for (const file of await walk(ROOT)) {
   text.split(/\r?\n/).forEach((line, index) => {
     const match = line.match(SECRET_ASSIGNMENT);
     const value = match?.[2] ?? "";
-    if (match && !ALLOWED_VALUE.test(value)) {
+    if (match && !ALLOWED_VALUE.test(value) && !ALLOWED_SECRET_REFERENCE.test(line)) {
       findings.push(`${file.rel}:${index + 1} (${match[1]})`);
     }
   });
