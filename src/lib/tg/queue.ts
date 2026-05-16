@@ -6,6 +6,7 @@ import { buildCalls } from "./transform";
 import { globalThrottle } from "./ratelimit";
 
 const MAX_ATTEMPTS = 8;
+const PROCESSING_STALE_MS = 10 * 60 * 1000;
 
 export async function enqueue(
   db: SupabaseClient,
@@ -34,6 +35,17 @@ export async function drainQueue(
   tg: TelegramClient,
   batch = 25,
 ): Promise<{ processed: number; sent: number; failed: number }> {
+  await db
+    .from("tg_forward_queue")
+    .update({
+      status: "pending",
+      last_error: "recovered stale processing row",
+      not_before: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("status", "processing")
+    .lt("updated_at", new Date(Date.now() - PROCESSING_STALE_MS).toISOString());
+
   const { data: claims, error } = await db
     .from("tg_forward_queue")
     .select("*")
@@ -43,7 +55,8 @@ export async function drainQueue(
     .limit(batch);
   if (error) throw new Error(error.message);
 
-  let sent = 0, failed = 0;
+  let sent = 0,
+    failed = 0;
   for (const item of claims ?? []) {
     // claim row
     const { data: locked } = await db
@@ -59,11 +72,14 @@ export async function drainQueue(
       // We need the rule (joined source/target) at delivery time
       const { data: rule } = await db
         .from("tg_rules")
-        .select("*, source:tg_sources(chat_id,title,is_active), target:tg_targets(chat_id,title,is_active)")
+        .select(
+          "*, source:tg_sources(chat_id,title,is_active), target:tg_targets(chat_id,title,is_active)",
+        )
         .eq("id", item.rule_id)
         .maybeSingle();
       if (!rule || !rule.is_active || !rule.target?.is_active) {
-        await db.from("tg_forward_queue")
+        await db
+          .from("tg_forward_queue")
           .update({ status: "dropped", last_error: "rule/target inactive" })
           .eq("id", item.id);
         continue;
@@ -71,7 +87,8 @@ export async function drainQueue(
       await globalThrottle();
       const calls = buildCalls(rule as any, item.payload as IncomingMessage, item.target_chat_id);
       for (const c of calls) await tg.call(c.method, c.payload);
-      await db.from("tg_forward_queue")
+      await db
+        .from("tg_forward_queue")
         .update({ status: "sent", updated_at: new Date().toISOString() })
         .eq("id", item.id);
       sent++;
@@ -79,13 +96,16 @@ export async function drainQueue(
       const attempts = (item.attempts ?? 0) + 1;
       const retry_after = Number(e?.retry_after) || Math.min(60 * 5, 2 ** attempts);
       const status = attempts >= MAX_ATTEMPTS ? "failed" : "pending";
-      await db.from("tg_forward_queue").update({
-        status,
-        attempts,
-        last_error: String(e?.message ?? e).slice(0, 500),
-        not_before: new Date(Date.now() + retry_after * 1000).toISOString(),
-        updated_at: new Date().toISOString(),
-      }).eq("id", item.id);
+      await db
+        .from("tg_forward_queue")
+        .update({
+          status,
+          attempts,
+          last_error: String(e?.message ?? e).slice(0, 500),
+          not_before: new Date(Date.now() + retry_after * 1000).toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", item.id);
       failed++;
     }
   }

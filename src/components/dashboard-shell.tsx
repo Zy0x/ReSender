@@ -33,10 +33,12 @@ export function DashboardShell() {
         <div className="max-w-lg space-y-3">
           <h1 className="text-2xl font-semibold">Konfigurasi belum lengkap</h1>
           <p className="text-muted-foreground text-sm">
-            Set <code>VITE_SUPABASE_URL</code> dan <code>VITE_SUPABASE_ANON_KEY</code> di
-            file <code>.env</code> proyek ini, lalu reload.
+            Set <code>VITE_SUPABASE_URL</code> dan <code>VITE_SUPABASE_ANON_KEY</code> di file{" "}
+            <code>.env</code> proyek ini, lalu reload.
           </p>
-          <p className="text-muted-foreground text-sm">Lihat <code>.env.example</code> untuk daftar lengkap.</p>
+          <p className="text-muted-foreground text-sm">
+            Lihat <code>.env.example</code> untuk daftar lengkap.
+          </p>
         </div>
       </div>
     );
@@ -65,7 +67,10 @@ export function DashboardShell() {
             variant="outline"
             size="sm"
             className="w-full"
-            onClick={async () => { await supabase.auth.signOut(); router.navigate({ to: "/login" }); }}
+            onClick={async () => {
+              await supabase.auth.signOut();
+              router.navigate({ to: "/login" });
+            }}
           >
             Sign out
           </Button>

@@ -13,6 +13,14 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
+import { Route as DashboardTargetsRouteImport } from './routes/dashboard.targets'
+import { Route as DashboardSourcesRouteImport } from './routes/dashboard.sources'
+import { Route as DashboardSettingsRouteImport } from './routes/dashboard.settings'
+import { Route as DashboardRulesRouteImport } from './routes/dashboard.rules'
+import { Route as DashboardQueueRouteImport } from './routes/dashboard.queue'
+import { Route as DashboardLogsRouteImport } from './routes/dashboard.logs'
+import { Route as ApiAdminMeRouteImport } from './routes/api/admin/me'
+import { Route as ApiAdminBootstrapRouteImport } from './routes/api/admin/bootstrap'
 import { Route as ApiPublicTgWebhookRouteImport } from './routes/api/public/tg/webhook'
 import { Route as ApiPublicTgProcessQueueRouteImport } from './routes/api/public/tg/process-queue'
 import { Route as ApiPublicTgHealthzRouteImport } from './routes/api/public/tg/healthz'
@@ -37,6 +45,46 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const DashboardTargetsRoute = DashboardTargetsRouteImport.update({
+  id: '/targets',
+  path: '/targets',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSourcesRoute = DashboardSourcesRouteImport.update({
+  id: '/sources',
+  path: '/sources',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardRulesRoute = DashboardRulesRouteImport.update({
+  id: '/rules',
+  path: '/rules',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardQueueRoute = DashboardQueueRouteImport.update({
+  id: '/queue',
+  path: '/queue',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const DashboardLogsRoute = DashboardLogsRouteImport.update({
+  id: '/logs',
+  path: '/logs',
+  getParentRoute: () => DashboardRoute,
+} as any)
+const ApiAdminMeRoute = ApiAdminMeRouteImport.update({
+  id: '/api/admin/me',
+  path: '/api/admin/me',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAdminBootstrapRoute = ApiAdminBootstrapRouteImport.update({
+  id: '/api/admin/bootstrap',
+  path: '/api/admin/bootstrap',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTgWebhookRoute = ApiPublicTgWebhookRouteImport.update({
   id: '/api/public/tg/webhook',
   path: '/api/public/tg/webhook',
@@ -57,7 +105,15 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
+  '/dashboard/logs': typeof DashboardLogsRoute
+  '/dashboard/queue': typeof DashboardQueueRoute
+  '/dashboard/rules': typeof DashboardRulesRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/sources': typeof DashboardSourcesRoute
+  '/dashboard/targets': typeof DashboardTargetsRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/admin/bootstrap': typeof ApiAdminBootstrapRoute
+  '/api/admin/me': typeof ApiAdminMeRoute
   '/api/public/tg/healthz': typeof ApiPublicTgHealthzRoute
   '/api/public/tg/process-queue': typeof ApiPublicTgProcessQueueRoute
   '/api/public/tg/webhook': typeof ApiPublicTgWebhookRoute
@@ -65,7 +121,15 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/dashboard/logs': typeof DashboardLogsRoute
+  '/dashboard/queue': typeof DashboardQueueRoute
+  '/dashboard/rules': typeof DashboardRulesRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/sources': typeof DashboardSourcesRoute
+  '/dashboard/targets': typeof DashboardTargetsRoute
   '/dashboard': typeof DashboardIndexRoute
+  '/api/admin/bootstrap': typeof ApiAdminBootstrapRoute
+  '/api/admin/me': typeof ApiAdminMeRoute
   '/api/public/tg/healthz': typeof ApiPublicTgHealthzRoute
   '/api/public/tg/process-queue': typeof ApiPublicTgProcessQueueRoute
   '/api/public/tg/webhook': typeof ApiPublicTgWebhookRoute
@@ -75,7 +139,15 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/login': typeof LoginRoute
+  '/dashboard/logs': typeof DashboardLogsRoute
+  '/dashboard/queue': typeof DashboardQueueRoute
+  '/dashboard/rules': typeof DashboardRulesRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/sources': typeof DashboardSourcesRoute
+  '/dashboard/targets': typeof DashboardTargetsRoute
   '/dashboard/': typeof DashboardIndexRoute
+  '/api/admin/bootstrap': typeof ApiAdminBootstrapRoute
+  '/api/admin/me': typeof ApiAdminMeRoute
   '/api/public/tg/healthz': typeof ApiPublicTgHealthzRoute
   '/api/public/tg/process-queue': typeof ApiPublicTgProcessQueueRoute
   '/api/public/tg/webhook': typeof ApiPublicTgWebhookRoute
@@ -86,7 +158,15 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
+    | '/dashboard/logs'
+    | '/dashboard/queue'
+    | '/dashboard/rules'
+    | '/dashboard/settings'
+    | '/dashboard/sources'
+    | '/dashboard/targets'
     | '/dashboard/'
+    | '/api/admin/bootstrap'
+    | '/api/admin/me'
     | '/api/public/tg/healthz'
     | '/api/public/tg/process-queue'
     | '/api/public/tg/webhook'
@@ -94,7 +174,15 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/dashboard/logs'
+    | '/dashboard/queue'
+    | '/dashboard/rules'
+    | '/dashboard/settings'
+    | '/dashboard/sources'
+    | '/dashboard/targets'
     | '/dashboard'
+    | '/api/admin/bootstrap'
+    | '/api/admin/me'
     | '/api/public/tg/healthz'
     | '/api/public/tg/process-queue'
     | '/api/public/tg/webhook'
@@ -103,7 +191,15 @@ export interface FileRouteTypes {
     | '/'
     | '/dashboard'
     | '/login'
+    | '/dashboard/logs'
+    | '/dashboard/queue'
+    | '/dashboard/rules'
+    | '/dashboard/settings'
+    | '/dashboard/sources'
+    | '/dashboard/targets'
     | '/dashboard/'
+    | '/api/admin/bootstrap'
+    | '/api/admin/me'
     | '/api/public/tg/healthz'
     | '/api/public/tg/process-queue'
     | '/api/public/tg/webhook'
@@ -113,6 +209,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   LoginRoute: typeof LoginRoute
+  ApiAdminBootstrapRoute: typeof ApiAdminBootstrapRoute
+  ApiAdminMeRoute: typeof ApiAdminMeRoute
   ApiPublicTgHealthzRoute: typeof ApiPublicTgHealthzRoute
   ApiPublicTgProcessQueueRoute: typeof ApiPublicTgProcessQueueRoute
   ApiPublicTgWebhookRoute: typeof ApiPublicTgWebhookRoute
@@ -148,6 +246,62 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/dashboard/targets': {
+      id: '/dashboard/targets'
+      path: '/targets'
+      fullPath: '/dashboard/targets'
+      preLoaderRoute: typeof DashboardTargetsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/sources': {
+      id: '/dashboard/sources'
+      path: '/sources'
+      fullPath: '/dashboard/sources'
+      preLoaderRoute: typeof DashboardSourcesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/settings': {
+      id: '/dashboard/settings'
+      path: '/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/rules': {
+      id: '/dashboard/rules'
+      path: '/rules'
+      fullPath: '/dashboard/rules'
+      preLoaderRoute: typeof DashboardRulesRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/queue': {
+      id: '/dashboard/queue'
+      path: '/queue'
+      fullPath: '/dashboard/queue'
+      preLoaderRoute: typeof DashboardQueueRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/dashboard/logs': {
+      id: '/dashboard/logs'
+      path: '/logs'
+      fullPath: '/dashboard/logs'
+      preLoaderRoute: typeof DashboardLogsRouteImport
+      parentRoute: typeof DashboardRoute
+    }
+    '/api/admin/me': {
+      id: '/api/admin/me'
+      path: '/api/admin/me'
+      fullPath: '/api/admin/me'
+      preLoaderRoute: typeof ApiAdminMeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/admin/bootstrap': {
+      id: '/api/admin/bootstrap'
+      path: '/api/admin/bootstrap'
+      fullPath: '/api/admin/bootstrap'
+      preLoaderRoute: typeof ApiAdminBootstrapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/tg/webhook': {
       id: '/api/public/tg/webhook'
       path: '/api/public/tg/webhook'
@@ -173,10 +327,22 @@ declare module '@tanstack/react-router' {
 }
 
 interface DashboardRouteChildren {
+  DashboardLogsRoute: typeof DashboardLogsRoute
+  DashboardQueueRoute: typeof DashboardQueueRoute
+  DashboardRulesRoute: typeof DashboardRulesRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardSourcesRoute: typeof DashboardSourcesRoute
+  DashboardTargetsRoute: typeof DashboardTargetsRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
+  DashboardLogsRoute: DashboardLogsRoute,
+  DashboardQueueRoute: DashboardQueueRoute,
+  DashboardRulesRoute: DashboardRulesRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardSourcesRoute: DashboardSourcesRoute,
+  DashboardTargetsRoute: DashboardTargetsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 
@@ -188,6 +354,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   DashboardRoute: DashboardRouteWithChildren,
   LoginRoute: LoginRoute,
+  ApiAdminBootstrapRoute: ApiAdminBootstrapRoute,
+  ApiAdminMeRoute: ApiAdminMeRoute,
   ApiPublicTgHealthzRoute: ApiPublicTgHealthzRoute,
   ApiPublicTgProcessQueueRoute: ApiPublicTgProcessQueueRoute,
   ApiPublicTgWebhookRoute: ApiPublicTgWebhookRoute,
@@ -195,3 +363,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

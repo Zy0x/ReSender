@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { readEnv } from "@/lib/tg/env.server";
+import { readHealthEnv } from "@/lib/tg/env.server";
 import { makeAdmin } from "@/lib/tg/db";
 
 export const Route = createFileRoute("/api/public/tg/healthz")({
@@ -7,15 +7,28 @@ export const Route = createFileRoute("/api/public/tg/healthz")({
     handlers: {
       GET: async () => {
         try {
-          const env = readEnv();
+          const env = readHealthEnv();
           const db = makeAdmin(env);
-          const { error } = await db.from("tg_sources").select("id", { head: true, count: "exact" }).limit(1);
-          if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
-          return Response.json({ ok: true, runtime: "tanstack-workers", time: new Date().toISOString() });
+          const { error } = await db
+            .from("tg_sources")
+            .select("id", { head: true, count: "exact" })
+            .limit(1);
+          if (error) {
+            console.error("healthz database check failed", error);
+            return Response.json({ ok: false, status: "unhealthy" }, { status: 500 });
+          }
+          return Response.json({
+            ok: true,
+            runtime: "tanstack-workers",
+            checks: { config: "ok", database: "ok" },
+            time: new Date().toISOString(),
+          });
         } catch (e: any) {
-          return Response.json({ ok: false, error: String(e?.message ?? e) }, { status: 500 });
+          console.error("healthz failed", e);
+          return Response.json({ ok: false, status: "unhealthy" }, { status: 500 });
         }
       },
+      POST: async () => Response.json({ ok: false, error: "method not allowed" }, { status: 405 }),
     },
   },
 });

@@ -8,7 +8,13 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
     "lint": "eslint .",
+    "test": "vitest run --passWithNoTests",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build",
+    "secret:scan": "node scripts/secret-scan.mjs",
+    "set-webhook": "tsx scripts/set-webhook.ts",
+    "delete-webhook": "tsx scripts/delete-webhook.ts",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -81,8 +87,10 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^15.15.0",
     "prettier": "^3.7.3",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.56.1",
+    "vitest": "^3.2.4",
     "vite": "^7.3.1"
   }
 }
