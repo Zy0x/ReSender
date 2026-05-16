@@ -1,54 +1,35 @@
-name: Sync from external repository
+name: Sync from forward-master
 
 on:
   workflow_dispatch:
     inputs:
       source_repository:
-        description: "Source repository owner/name. Kosongkan untuk memakai root config sync."
+        description: "Source repository owner/name. Kosongkan untuk memakai file sync."
         required: false
         default: ""
       branch_selector:
-        description: "Branch source: changed_branch, all_recent, all, atau nama branch spesifik."
-        required: false
-        default: ""
-      include_main:
-        description: "Ikut sync branch main saat branch selector bukan main/all?"
-        required: false
-        default: ""
-      max_branches:
-        description: "Maksimum branch jika branch_selector=all_recent. Kosongkan untuk config."
-        required: false
-        default: ""
-      sync_mode:
-        description: "Mode sinkronisasi file. Kosongkan untuk config."
-        required: false
-        default: ""
-      allow_delete:
-        description: "Izinkan rsync --delete. Kosongkan untuk config."
+        description: "Branch source yang disync."
         required: false
         default: ""
       dry_run:
         description: "Simulasi tanpa commit/push."
         required: false
-        default: "false"
+        default: "true"
         type: choice
         options:
-          - "false"
           - "true"
-
-  repository_dispatch:
-    types: [sync-from-org, sync-from-repository, sync-project]
+          - "false"
 
 permissions:
   contents: write
 
 concurrency:
-  group: sync-${{ github.repository }}-${{ github.event_name }}-${{ github.ref_name }}
+  group: sync-${{ github.repository }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   sync:
-    name: Sync source branches into target
+    name: Sync source into ReSender
     runs-on: ubuntu-latest
 
     steps:
@@ -59,36 +40,15 @@ jobs:
           fetch-depth: 0
 
       - name: Resolve sync config
-        id: config
         shell: bash
         env:
-          EVENT_NAME: ${{ github.event_name }}
           INPUT_SOURCE_REPOSITORY: ${{ github.event.inputs.source_repository }}
           INPUT_BRANCH_SELECTOR: ${{ github.event.inputs.branch_selector }}
-          INPUT_INCLUDE_MAIN: ${{ github.event.inputs.include_main }}
-          INPUT_MAX_BRANCHES: ${{ github.event.inputs.max_branches }}
-          INPUT_SYNC_MODE: ${{ github.event.inputs.sync_mode }}
-          INPUT_ALLOW_DELETE: ${{ github.event.inputs.allow_delete }}
           INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
-          PAYLOAD_SOURCE_REPOSITORY: ${{ github.event.client_payload.source_repo_full_name || github.event.client_payload.source_repository }}
-          PAYLOAD_BRANCH_SELECTOR: ${{ github.event.client_payload.branch_selector || github.event.client_payload.target_branch }}
-          PAYLOAD_SOURCE_BRANCH: ${{ github.event.client_payload.source_branch }}
-          PAYLOAD_SOURCE_SHA: ${{ github.event.client_payload.source_sha }}
-          PAYLOAD_INCLUDE_MAIN: ${{ github.event.client_payload.include_main }}
-          PAYLOAD_MAX_BRANCHES: ${{ github.event.client_payload.max_branches }}
-          PAYLOAD_SYNC_MODE: ${{ github.event.client_payload.sync_mode }}
-          PAYLOAD_ALLOW_DELETE: ${{ github.event.client_payload.allow_delete }}
         run: |
           set -euo pipefail
 
           CONFIG_FILE="${GITHUB_WORKSPACE}/target/sync"
-
-          trim() {
-            local value="${1:-}"
-            value="${value#"${value%%[![:space:]]*}"}"
-            value="${value%"${value##*[![:space:]]}"}"
-            printf '%s' "$value"
-          }
 
           read_config() {
             local key="$1"
@@ -112,6 +72,13 @@ jobs:
             ' "$CONFIG_FILE"
           }
 
+          trim() {
+            local value="${1:-}"
+            value="${value#"${value%%[![:space:]]*}"}"
+            value="${value%"${value##*[![:space:]]}"}"
+            printf '%s' "$value"
+          }
+
           first_non_empty() {
             local value
             for value in "$@"; do
@@ -124,63 +91,24 @@ jobs:
             return 0
           }
 
-          CONFIG_SOURCE_REPOSITORY="$(read_config SOURCE_REPOSITORY)"
-          CONFIG_DEFAULT_BRANCH_SELECTOR="$(read_config BRANCH_SELECTOR)"
-          CONFIG_INCLUDE_MAIN="$(read_config INCLUDE_MAIN)"
-          CONFIG_MAX_BRANCHES="$(read_config MAX_BRANCHES)"
-          CONFIG_SYNC_MODE="$(read_config SYNC_MODE)"
-          CONFIG_ALLOW_DELETE="$(read_config ALLOW_DELETE)"
-          CONFIG_BLACKLIST_PATHS="$(read_config BLACKLIST_PATHS)"
-          CONFIG_WHITELIST_PATHS="$(read_config WHITELIST_PATHS)"
-          CONFIG_COMMIT_PREFIX="$(read_config COMMIT_PREFIX)"
-          CONFIG_GIT_USER_NAME="$(read_config GIT_USER_NAME)"
-          CONFIG_GIT_USER_EMAIL="$(read_config GIT_USER_EMAIL)"
-
-          if [ "$EVENT_NAME" = "repository_dispatch" ]; then
-            SOURCE_REPOSITORY="$(first_non_empty "$PAYLOAD_SOURCE_REPOSITORY" "$CONFIG_SOURCE_REPOSITORY")"
-            BRANCH_SELECTOR="$(first_non_empty "$PAYLOAD_BRANCH_SELECTOR" "$CONFIG_DEFAULT_BRANCH_SELECTOR" "$PAYLOAD_SOURCE_BRANCH" "main")"
-            INCLUDE_MAIN="$(first_non_empty "$PAYLOAD_INCLUDE_MAIN" "$CONFIG_INCLUDE_MAIN" "true")"
-            MAX_BRANCHES="$(first_non_empty "$PAYLOAD_MAX_BRANCHES" "$CONFIG_MAX_BRANCHES" "50")"
-            SYNC_MODE="$(first_non_empty "$PAYLOAD_SYNC_MODE" "$CONFIG_SYNC_MODE" "blacklist")"
-            ALLOW_DELETE="$(first_non_empty "$PAYLOAD_ALLOW_DELETE" "$CONFIG_ALLOW_DELETE" "true")"
-            SOURCE_BRANCH="$(trim "$PAYLOAD_SOURCE_BRANCH")"
-            SOURCE_SHA="$(trim "$PAYLOAD_SOURCE_SHA")"
-            DRY_RUN="false"
-          else
-            SOURCE_REPOSITORY="$(first_non_empty "$INPUT_SOURCE_REPOSITORY" "$CONFIG_SOURCE_REPOSITORY")"
-            BRANCH_SELECTOR="$(first_non_empty "$INPUT_BRANCH_SELECTOR" "$CONFIG_DEFAULT_BRANCH_SELECTOR" "main")"
-            INCLUDE_MAIN="$(first_non_empty "$INPUT_INCLUDE_MAIN" "$CONFIG_INCLUDE_MAIN" "true")"
-            MAX_BRANCHES="$(first_non_empty "$INPUT_MAX_BRANCHES" "$CONFIG_MAX_BRANCHES" "50")"
-            SYNC_MODE="$(first_non_empty "$INPUT_SYNC_MODE" "$CONFIG_SYNC_MODE" "blacklist")"
-            ALLOW_DELETE="$(first_non_empty "$INPUT_ALLOW_DELETE" "$CONFIG_ALLOW_DELETE" "true")"
-            SOURCE_BRANCH=""
-            SOURCE_SHA=""
-            DRY_RUN="$(first_non_empty "$INPUT_DRY_RUN" "false")"
-          fi
-
-          BLACKLIST_PATHS="$(first_non_empty "$CONFIG_BLACKLIST_PATHS" ".git/,.github/,.lovable/,.netlify/,node_modules/,dist/,build/,coverage/,.turbo/,supabase/.temp/,.env,.env.*,**/.env,**/.env.*,sync,/*.md")"
-          WHITELIST_PATHS="$(first_non_empty "$CONFIG_WHITELIST_PATHS" "")"
-          COMMIT_PREFIX="$(first_non_empty "$CONFIG_COMMIT_PREFIX" "chore: sync")"
-          GIT_USER_NAME="$(first_non_empty "$CONFIG_GIT_USER_NAME" "github-actions[bot]")"
-          GIT_USER_EMAIL="$(first_non_empty "$CONFIG_GIT_USER_EMAIL" "github-actions[bot]@users.noreply.github.com")"
+          SOURCE_REPOSITORY="$(first_non_empty "$INPUT_SOURCE_REPOSITORY" "$(read_config SOURCE_REPOSITORY)")"
+          BRANCH_SELECTOR="$(first_non_empty "$INPUT_BRANCH_SELECTOR" "$(read_config BRANCH_SELECTOR)" "main")"
+          SYNC_MODE="$(first_non_empty "$(read_config SYNC_MODE)" "blacklist")"
+          ALLOW_DELETE="$(first_non_empty "$(read_config ALLOW_DELETE)" "true")"
+          BLACKLIST_PATHS="$(first_non_empty "$(read_config BLACKLIST_PATHS)" ".git/,.github/,.lovable/,.netlify/,node_modules/,dist/,build/,coverage/,.turbo/,supabase/.temp/,.env,.env.*,**/.env,**/.env.*,sync,/*.md")"
+          WHITELIST_PATHS="$(first_non_empty "$(read_config WHITELIST_PATHS)" "")"
+          COMMIT_PREFIX="$(first_non_empty "$(read_config COMMIT_PREFIX)" "chore: sync")"
+          GIT_USER_NAME="$(first_non_empty "$(read_config GIT_USER_NAME)" "github-actions[bot]")"
+          GIT_USER_EMAIL="$(first_non_empty "$(read_config GIT_USER_EMAIL)" "github-actions[bot]@users.noreply.github.com")"
+          DRY_RUN="$(first_non_empty "$INPUT_DRY_RUN" "true")"
 
           if [[ ! "$SOURCE_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
             echo "SOURCE_REPOSITORY harus berbentuk owner/repo: ${SOURCE_REPOSITORY:-<empty>}"
             exit 1
           fi
 
-          case "$BRANCH_SELECTOR" in
-            all|all_recent|changed_branch) ;;
-            *)
-              if ! git check-ref-format --branch "$BRANCH_SELECTOR" >/dev/null 2>&1; then
-                echo "Branch selector tidak valid: $BRANCH_SELECTOR"
-                exit 1
-              fi
-              ;;
-          esac
-
-          if [[ ! "$INCLUDE_MAIN" =~ ^(true|false)$ ]]; then
-            echo "INCLUDE_MAIN tidak valid: $INCLUDE_MAIN"
+          if ! git check-ref-format --branch "$BRANCH_SELECTOR" >/dev/null 2>&1; then
+            echo "Branch selector tidak valid: $BRANCH_SELECTOR"
             exit 1
           fi
 
@@ -199,135 +127,67 @@ jobs:
             exit 1
           fi
 
-          if ! [[ "$MAX_BRANCHES" =~ ^[0-9]+$ ]]; then
-            echo "MAX_BRANCHES harus angka."
-            exit 1
-          fi
-
           {
             echo "SOURCE_REPOSITORY=$SOURCE_REPOSITORY"
             echo "BRANCH_SELECTOR=$BRANCH_SELECTOR"
-            echo "SOURCE_BRANCH=$SOURCE_BRANCH"
-            echo "SOURCE_SHA=$SOURCE_SHA"
-            echo "INCLUDE_MAIN=$INCLUDE_MAIN"
-            echo "MAX_BRANCHES=$MAX_BRANCHES"
             echo "SYNC_MODE=$SYNC_MODE"
             echo "ALLOW_DELETE=$ALLOW_DELETE"
-            echo "DRY_RUN=$DRY_RUN"
             echo "BLACKLIST_PATHS=$BLACKLIST_PATHS"
             echo "WHITELIST_PATHS=$WHITELIST_PATHS"
             echo "COMMIT_PREFIX=$COMMIT_PREFIX"
             echo "GIT_USER_NAME=$GIT_USER_NAME"
             echo "GIT_USER_EMAIL=$GIT_USER_EMAIL"
+            echo "DRY_RUN=$DRY_RUN"
           } >> "$GITHUB_ENV"
 
-          echo "source_repository=$SOURCE_REPOSITORY" >> "$GITHUB_OUTPUT"
-          echo "branch_selector=$BRANCH_SELECTOR" >> "$GITHUB_OUTPUT"
-
-          echo "===== SYNC CONFIG ====="
           echo "Source repository : $SOURCE_REPOSITORY"
-          echo "Branch selector   : $BRANCH_SELECTOR"
-          echo "Triggered branch  : ${SOURCE_BRANCH:-manual/config}"
-          echo "Triggered sha     : ${SOURCE_SHA:-manual/config}"
-          echo "Include main      : $INCLUDE_MAIN"
-          echo "Max branches      : $MAX_BRANCHES"
+          echo "Branch            : $BRANCH_SELECTOR"
           echo "Mode              : $SYNC_MODE"
           echo "Allow delete      : $ALLOW_DELETE"
           echo "Dry run           : $DRY_RUN"
-          echo "Target repository : $GITHUB_REPOSITORY"
-          echo "======================="
 
       - name: Clone source repository
         shell: bash
         env:
           SYNC_SOURCE_PAT: ${{ secrets.SYNC_SOURCE_PAT }}
-          SYNC_PROJECT_WEB_PAT: ${{ secrets.SYNC_PROJECT_WEB_PAT }}
-          REPO_DISPATCH_PAT: ${{ secrets.REPO_DISPATCH_PAT }}
         run: |
           set -euo pipefail
 
-          TOKEN="${SYNC_SOURCE_PAT:-${SYNC_PROJECT_WEB_PAT:-${REPO_DISPATCH_PAT:-}}}"
-          if [ -n "$TOKEN" ]; then
-            AUTH_HEADER="$(printf 'x-access-token:%s' "$TOKEN" | base64 | tr -d '\n')"
-            git -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${AUTH_HEADER}" \
-              clone --no-checkout "https://github.com/${SOURCE_REPOSITORY}.git" source
-          else
-            git clone --no-checkout "https://github.com/${SOURCE_REPOSITORY}.git" source
-          fi
-
-          cd source
-          if [ -n "$TOKEN" ]; then
-            git -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${AUTH_HEADER}" \
-              fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune
-          else
-            git fetch origin '+refs/heads/*:refs/remotes/origin/*' --prune
-          fi
-
-      - name: Resolve branch list
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          cd "${GITHUB_WORKSPACE}/source"
-
-          case "$BRANCH_SELECTOR" in
-            all|all_recent)
-              git for-each-ref \
-                --sort=-committerdate \
-                --format='%(refname:strip=3)' \
-                refs/remotes/origin \
-                | grep -v '^HEAD$' \
-                > "${GITHUB_WORKSPACE}/branches.all.txt"
-
-              if [ "$INCLUDE_MAIN" != "true" ]; then
-                grep -v '^main$' "${GITHUB_WORKSPACE}/branches.all.txt" > "${GITHUB_WORKSPACE}/branches.filtered.txt" || true
-                mv "${GITHUB_WORKSPACE}/branches.filtered.txt" "${GITHUB_WORKSPACE}/branches.all.txt"
-              fi
-
-              if [ "$BRANCH_SELECTOR" = "all_recent" ] && [ "$MAX_BRANCHES" != "0" ]; then
-                head -n "$MAX_BRANCHES" "${GITHUB_WORKSPACE}/branches.all.txt" > "${GITHUB_WORKSPACE}/branches.txt"
-              else
-                cp "${GITHUB_WORKSPACE}/branches.all.txt" "${GITHUB_WORKSPACE}/branches.txt"
-              fi
-              ;;
-            changed_branch)
-              if [ -z "${SOURCE_BRANCH:-}" ]; then
-                echo "changed_branch membutuhkan payload source_branch."
-                exit 1
-              fi
-              printf '%s\n' "$SOURCE_BRANCH" > "${GITHUB_WORKSPACE}/branches.txt"
-              ;;
-            *)
-              printf '%s\n' "$BRANCH_SELECTOR" > "${GITHUB_WORKSPACE}/branches.txt"
-              ;;
-          esac
-
-          if [ "$INCLUDE_MAIN" = "true" ] && ! grep -qx 'main' "${GITHUB_WORKSPACE}/branches.txt" && git show-ref --verify --quiet refs/remotes/origin/main; then
-            printf '%s\n' main >> "${GITHUB_WORKSPACE}/branches.txt"
-          fi
-
-          awk 'NF && !seen[$0]++' "${GITHUB_WORKSPACE}/branches.txt" > "${GITHUB_WORKSPACE}/branches.unique.txt"
-          mv "${GITHUB_WORKSPACE}/branches.unique.txt" "${GITHUB_WORKSPACE}/branches.txt"
-
-          while IFS= read -r branch; do
-            if ! git check-ref-format --branch "$branch" >/dev/null 2>&1; then
-              echo "Branch source tidak valid: $branch"
-              exit 1
-            fi
-          done < "${GITHUB_WORKSPACE}/branches.txt"
-
-          echo "Branch yang akan disinkronkan:"
-          cat "${GITHUB_WORKSPACE}/branches.txt"
-
-          if [ ! -s "${GITHUB_WORKSPACE}/branches.txt" ]; then
-            echo "Tidak ada branch untuk disinkronkan."
+          if [ -z "${SYNC_SOURCE_PAT:-}" ]; then
+            echo "Secret SYNC_SOURCE_PAT belum dikonfigurasi di repo target."
             exit 1
           fi
 
-      - name: Sync branches
+          AUTH_HEADER="$(printf 'x-access-token:%s' "$SYNC_SOURCE_PAT" | base64 | tr -d '\n')"
+
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${AUTH_HEADER}" \
+            clone --no-checkout "https://github.com/${SOURCE_REPOSITORY}.git" source
+
+          cd source
+
+          git -c http.https://github.com/.extraheader="AUTHORIZATION: basic ${AUTH_HEADER}" \
+            fetch origin "+refs/heads/*:refs/remotes/origin/*" --prune
+
+          if ! git show-ref --verify --quiet "refs/remotes/origin/${BRANCH_SELECTOR}"; then
+            echo "Branch source tidak ditemukan: ${BRANCH_SELECTOR}"
+            exit 1
+          fi
+
+          git checkout -B "$BRANCH_SELECTOR" "origin/${BRANCH_SELECTOR}"
+
+      - name: Sync files into target
         shell: bash
         run: |
           set -euo pipefail
+
+          cd "${GITHUB_WORKSPACE}/target"
+
+          git checkout -B "$BRANCH_SELECTOR"
+
+          delete_flag=()
+          if [ "$ALLOW_DELETE" = "true" ]; then
+            delete_flag=(--delete)
+          fi
 
           csv_to_args() {
             local csv="$1"
@@ -348,124 +208,63 @@ jobs:
           csv_to_args "$BLACKLIST_PATHS" blacklist_paths
           csv_to_args "$WHITELIST_PATHS" whitelist_paths
 
-          sync_one_branch() {
-            local branch="$1"
-
-            echo ""
-            echo "======================================"
-            echo "Sync branch: ${branch}"
-            echo "======================================"
-
-            cd "${GITHUB_WORKSPACE}/source"
-
-            if ! git show-ref --verify --quiet "refs/remotes/origin/${branch}"; then
-              echo "Branch source tidak ditemukan: ${branch}"
-              return 1
+          if [ "$SYNC_MODE" = "whitelist" ]; then
+            if [ "${#whitelist_paths[@]}" -eq 0 ]; then
+              echo "WHITELIST_PATHS kosong."
+              exit 1
             fi
 
-            git checkout -B "$branch" "origin/${branch}"
-
-            cd "${GITHUB_WORKSPACE}/target"
-            git fetch origin "$branch" || true
-
-            if git show-ref --verify --quiet "refs/remotes/origin/${branch}"; then
-              git checkout -B "$branch" "origin/${branch}"
-            elif [ "$branch" = "main" ]; then
-              git checkout -B main
-            else
-              git fetch origin main || true
-              if git show-ref --verify --quiet refs/remotes/origin/main; then
-                git checkout -B "$branch" origin/main
-              else
-                git checkout -B "$branch"
-              fi
-            fi
-
-            delete_flag=()
-            if [ "$ALLOW_DELETE" = "true" ]; then
-              delete_flag=(--delete)
-            fi
-
-            if [ "$SYNC_MODE" = "whitelist" ]; then
-              if [ "${#whitelist_paths[@]}" -eq 0 ]; then
-                echo "WHITELIST_PATHS kosong, tidak ada file yang bisa disinkronkan."
+            for path in "${whitelist_paths[@]}"; do
+              if [[ "$path" = /* || "$path" = *".."* || "$path" = *"\\"* ]]; then
+                echo "Path whitelist tidak aman: $path"
                 exit 1
               fi
-              for path in "${whitelist_paths[@]}"; do
-                if [[ "$path" = /* || "$path" = *".."* || "$path" = *"\\"* ]]; then
-                  echo "Path whitelist tidak aman: $path"
-                  exit 1
-                fi
 
-                if [ -e "${GITHUB_WORKSPACE}/source/$path" ]; then
-                  if [ -d "${GITHUB_WORKSPACE}/source/$path" ]; then
-                    mkdir -p "$path"
-                    rsync -a --checksum "${delete_flag[@]}" "${GITHUB_WORKSPACE}/source/$path/" "$path/"
-                  else
-                    mkdir -p "$(dirname "$path")"
-                    rsync -a --checksum "${delete_flag[@]}" "${GITHUB_WORKSPACE}/source/$path" "$path"
-                  fi
+              if [ -e "${GITHUB_WORKSPACE}/source/$path" ]; then
+                if [ -d "${GITHUB_WORKSPACE}/source/$path" ]; then
+                  mkdir -p "$path"
+                  rsync -a --checksum "${delete_flag[@]}" "${GITHUB_WORKSPACE}/source/$path/" "$path/"
                 else
-                  echo "Path whitelist tidak ditemukan di source: $path"
+                  mkdir -p "$(dirname "$path")"
+                  rsync -a --checksum "${delete_flag[@]}" "${GITHUB_WORKSPACE}/source/$path" "$path"
                 fi
-              done
-            else
-              exclude_args=(--exclude='.git')
-              for path in "${blacklist_paths[@]}"; do
-                exclude_args+=(--exclude "$path")
-              done
-              rsync -a --checksum "${delete_flag[@]}" "${exclude_args[@]}" "${GITHUB_WORKSPACE}/source/" .
-            fi
-
-            git config user.name "$GIT_USER_NAME"
-            git config user.email "$GIT_USER_EMAIL"
-            git add -A
-
-            if git diff --cached --quiet; then
-              echo "Tidak ada perubahan file untuk branch ${branch}."
-              if [ "$DRY_RUN" != "true" ]; then
-                git push origin "HEAD:${branch}"
+              else
+                echo "Path whitelist tidak ditemukan di source: $path"
               fi
-              return 0
-            fi
+            done
+          else
+            exclude_args=(--exclude='.git')
+            for path in "${blacklist_paths[@]}"; do
+              exclude_args+=(--exclude "$path")
+            done
 
-            git status --short
-            if [ "$DRY_RUN" = "true" ]; then
-              echo "DRY_RUN=true, commit/push dilewati."
-              git diff --cached --stat
-              git reset --mixed
-              return 0
-            fi
+            rsync -a --checksum "${delete_flag[@]}" "${exclude_args[@]}" "${GITHUB_WORKSPACE}/source/" .
+          fi
 
-            git commit -m "${COMMIT_PREFIX} from ${SOURCE_REPOSITORY}@${branch}"
-            git push origin "HEAD:${branch}"
-            echo "Sync berhasil ke branch ${branch}"
-          }
-
-          while IFS= read -r branch; do
-            if [ -z "$branch" ]; then
-              continue
-            fi
-            sync_one_branch "$branch"
-          done < "${GITHUB_WORKSPACE}/branches.txt"
-
-      - name: Summary
+      - name: Commit and push
         shell: bash
         run: |
           set -euo pipefail
 
-          echo "Branch selesai diproses:"
-          while IFS= read -r branch; do
-            if [ -z "$branch" ]; then
-              continue
-            fi
+          cd "${GITHUB_WORKSPACE}/target"
 
-            safe_branch="$(echo "$branch" \
-              | tr '[:upper:]' '[:lower:]' \
-              | sed 's#[^a-z0-9-]#-#g' \
-              | sed 's#--*#-#g' \
-              | sed 's#^-##;s#-$##')"
+          git config user.name "$GIT_USER_NAME"
+          git config user.email "$GIT_USER_EMAIL"
 
-            echo "- ${branch}"
-            echo "  Preview URL umum: https://${safe_branch}--sipenadev.netlify.app"
-          done < "${GITHUB_WORKSPACE}/branches.txt"
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "Tidak ada perubahan file untuk disync."
+            exit 0
+          fi
+
+          git status --short
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "DRY_RUN=true, commit dan push dilewati."
+            git diff --cached --stat
+            exit 0
+          fi
+
+          git commit -m "${COMMIT_PREFIX} from ${SOURCE_REPOSITORY}@${BRANCH_SELECTOR}"
+          git push origin "HEAD:${BRANCH_SELECTOR}"
