@@ -71,17 +71,17 @@ type Rule = {
 };
 
 const MODE_OPTIONS = [
-  { value: "native_forward", label: "native_forward — teruskan asli (with attribution)" },
-  { value: "copy_hide_sender", label: "copy_hide_sender — salin tanpa atribusi pengirim" },
-  { value: "notify_only", label: "notify_only — hanya kirim notifikasi ringkasan" },
-  { value: "anonymize", label: "anonymize — salin dengan transformasi" },
-  { value: "media_only", label: "media_only — hanya media, skip teks saja" },
-  { value: "text_only", label: "text_only — hanya teks, skip media" },
+  { value: "native_forward", label: "Teruskan Asli (Dengan Nama Pengirim Asli)" },
+  { value: "copy_hide_sender", label: "Salin Saja (Sembunyikan Nama Pengirim)" },
+  { value: "notify_only", label: "Notifikasi Saja (Hanya Teks Ringkasan)" },
+  { value: "anonymize", label: "Anonim (Salin & Ubah Kata-kata Tertentu)" },
+  { value: "media_only", label: "Hanya Media (Abaikan Pesan Teks)" },
+  { value: "text_only", label: "Hanya Teks (Abaikan Foto/Video)" },
 ];
 
 const EXCESS_OPTIONS = [
-  { value: "queue", label: "queue — antrian & retry" },
-  { value: "drop", label: "drop — buang jika rate limit tercapai" },
+  { value: "queue", label: "Masukkan ke Antrian (Akan dikirim nanti)" },
+  { value: "drop", label: "Buang Pesan (Jangan dikirim)" },
 ];
 
 function defaultForm(): Partial<Rule> {
@@ -172,14 +172,8 @@ function RulesPage() {
     setErr(null);
     const payload = {
       ...form,
-      keyword_include: kwInclude
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
-      keyword_exclude: kwExclude
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean),
+      keyword_include: kwInclude.split(",").map((s) => s.trim()).filter(Boolean),
+      keyword_exclude: kwExclude.split(",").map((s) => s.trim()).filter(Boolean),
       header_template: form.header_template || null,
       footer_template: form.footer_template || null,
     };
@@ -211,306 +205,294 @@ function RulesPage() {
     load();
   }
 
-  const bool = (key: keyof Rule) => (
-    <div className="flex items-center gap-2">
+  const bool = (key: keyof Rule, label: string) => (
+    <div className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-background/20 hover:bg-muted/30 transition-colors">
       <input
         id={`rule-${key}`}
         type="checkbox"
-        className="h-4 w-4"
+        className="h-4 w-4 rounded accent-primary"
         checked={Boolean(form[key])}
         onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.checked }))}
       />
-      <Label htmlFor={`rule-${key}`}>{key.replace(/_/g, " ")}</Label>
+      <Label htmlFor={`rule-${key}`} className="font-medium cursor-pointer flex-1">{label}</Label>
     </div>
   );
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="glass-card p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Rules</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Mapping source → target dengan mode forward, filter, transformasi, rate limit, dan prioritas.
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Aturan Forward</h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
+            Tentukan dari mana pesan diambil, ke mana dikirim, serta atur filter dan transformasinya.
           </p>
         </div>
-        <Button id="btn-add-rule" onClick={openAdd} disabled={sources.length === 0 || targets.length === 0}>
-          + Tambah Rule
+        <Button size="lg" className="rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform" onClick={openAdd} disabled={sources.length === 0 || targets.length === 0}>
+          ➕ Buat Aturan Baru
         </Button>
       </div>
 
       {sources.length === 0 && targets.length === 0 && !loading && (
-        <div className="border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-400 rounded-lg p-4 text-sm">
-          ⚠️ Tambahkan minimal 1 Source dan 1 Target aktif sebelum membuat Rule.
+        <div className="p-4 rounded-xl bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 font-medium">
+          ⚠️ Mohon tambahkan minimal 1 Sumber dan 1 Tujuan yang aktif terlebih dahulu sebelum membuat aturan.
         </div>
       )}
 
-      {err && <p className="text-sm text-destructive">{err}</p>}
+      {err && <div className="p-4 rounded-xl bg-destructive/10 text-destructive border border-destructive/20">{err}</div>}
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Memuat...</p>
-      ) : rules.length === 0 ? (
-        <div className="border border-dashed border-border rounded-lg p-10 text-center text-sm text-muted-foreground">
-          Belum ada rule. Tambahkan Source & Target terlebih dahulu, lalu klik <strong>+ Tambah Rule</strong>.
-        </div>
-      ) : (
-        <div className="border border-border rounded-lg overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Source</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Target</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Mode</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Prioritas</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {rules.map((r) => (
-                <tr key={r.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{r.source?.title ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground font-mono">{r.source?.chat_id}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="font-medium">{r.target?.title ?? "—"}</div>
-                    <div className="text-xs text-muted-foreground font-mono">{r.target?.chat_id}</div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant="outline">{r.mode}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-center">{r.priority}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={r.is_active ? "default" : "secondary"}>
-                      {r.is_active ? "Aktif" : "Nonaktif"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => openEdit(r)}>Edit</Button>
-                    <Button size="sm" variant="outline" onClick={() => toggleActive(r)}>
-                      {r.is_active ? "Pause" : "Resume"}
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => setDelId(r.id)}>Hapus</Button>
-                  </td>
+      <div className="glass-card rounded-2xl overflow-hidden">
+        {loading ? (
+          <div className="p-10 text-center text-muted-foreground animate-pulse-subtle">
+            Memuat data...
+          </div>
+        ) : rules.length === 0 ? (
+          <div className="p-12 text-center flex flex-col items-center justify-center">
+            <div className="text-5xl mb-4 opacity-50">⚙️</div>
+            <h3 className="text-lg font-semibold mb-2">Belum ada aturan</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">Silakan buat aturan untuk mulai meneruskan pesan secara otomatis.</p>
+            <Button variant="outline" onClick={openAdd} disabled={sources.length === 0 || targets.length === 0} className="rounded-xl">Buat Sekarang</Button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[800px]">
+              <thead className="bg-muted/50 border-b border-border/50">
+                <tr>
+                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Dari (Sumber)</th>
+                  <th className="text-center px-4 py-4 text-muted-foreground">→</th>
+                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Ke (Tujuan)</th>
+                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Mode</th>
+                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Status</th>
+                  <th className="text-right px-6 py-4 font-semibold text-muted-foreground">Aksi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {rules.map((r) => (
+                  <tr key={r.id} className="hover:bg-accent/20 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="font-medium">{r.source?.title ?? <span className="italic text-muted-foreground">Tanpa Nama</span>}</div>
+                      <div className="text-xs text-muted-foreground font-mono opacity-70 mt-1">{r.source?.chat_id}</div>
+                    </td>
+                    <td className="px-4 py-4 text-center text-muted-foreground">➡️</td>
+                    <td className="px-6 py-4">
+                      <div className="font-medium">{r.target?.title ?? <span className="italic text-muted-foreground">Tanpa Nama</span>}</div>
+                      <div className="text-xs text-muted-foreground font-mono opacity-70 mt-1">{r.target?.chat_id}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant="outline" className="bg-background/50 backdrop-blur-sm rounded-lg capitalize">
+                        {r.mode.replace(/_/g, " ")}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant={r.is_active ? "default" : "secondary"} className="rounded-lg shadow-sm">
+                        {r.is_active ? "🟢 Aktif" : "⚪ Nonaktif"}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-right flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button size="sm" variant="ghost" className="hover:bg-primary/10 rounded-lg" onClick={() => openEdit(r)}>✏️ Edit</Button>
+                      <Button size="sm" variant="ghost" className="hover:bg-accent/10 rounded-lg" onClick={() => toggleActive(r)}>
+                        {r.is_active ? "⏸️ Jeda" : "▶️ Lanjut"}
+                      </Button>
+                      <Button size="sm" variant="ghost" className="hover:bg-destructive/10 text-destructive rounded-lg" onClick={() => setDelId(r.id)}>🗑️ Hapus</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* Add/Edit Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto rounded-2xl glass-card border-none shadow-2xl">
           <DialogHeader>
-            <DialogTitle>{editId ? "Edit Rule" : "Tambah Rule"}</DialogTitle>
+            <DialogTitle className="text-2xl">{editId ? "Ubah Aturan" : "Buat Aturan Baru"}</DialogTitle>
           </DialogHeader>
-          <Tabs defaultValue="basic">
-            <TabsList className="mb-4">
-              <TabsTrigger value="basic">Dasar</TabsTrigger>
-              <TabsTrigger value="filter">Filter</TabsTrigger>
-              <TabsTrigger value="transform">Transformasi</TabsTrigger>
-              <TabsTrigger value="ratelimit">Rate Limit</TabsTrigger>
-              <TabsTrigger value="delivery">Pengiriman</TabsTrigger>
+          <Tabs defaultValue="basic" className="mt-4">
+            <TabsList className="mb-6 bg-background/50 p-1 rounded-xl flex overflow-x-auto">
+              <TabsTrigger value="basic" className="rounded-lg flex-1">Pengaturan Dasar</TabsTrigger>
+              <TabsTrigger value="filter" className="rounded-lg flex-1">Filter Pesan</TabsTrigger>
+              <TabsTrigger value="transform" className="rounded-lg flex-1">Ubah Teks</TabsTrigger>
+              <TabsTrigger value="ratelimit" className="rounded-lg flex-1">Batasan Kecepatan</TabsTrigger>
+              <TabsTrigger value="delivery" className="rounded-lg flex-1">Lainnya</TabsTrigger>
             </TabsList>
 
             {/* TAB: Dasar */}
-            <TabsContent value="basic" className="space-y-4">
-              <div className="space-y-1">
-                <Label htmlFor="rule-source">Source <span className="text-destructive">*</span></Label>
+            <TabsContent value="basic" className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="rule-source">Ambil Pesan Dari (Sumber) <span className="text-destructive">*</span></Label>
                 <Select value={form.source_id} onValueChange={(v) => setForm((f) => ({ ...f, source_id: v }))}>
-                  <SelectTrigger id="rule-source">
-                    <SelectValue placeholder="Pilih source..." />
+                  <SelectTrigger id="rule-source" className="rounded-xl bg-background/50">
+                    <SelectValue placeholder="Pilih grup/channel asal..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {sources.map((s) => (
-                      <SelectItem key={s.id} value={s.id}>
+                      <SelectItem key={s.id} value={s.id} className="rounded-lg">
                         {s.title ?? s.chat_id} ({s.chat_id})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="rule-target">Target <span className="text-destructive">*</span></Label>
+              <div className="space-y-2">
+                <Label htmlFor="rule-target">Kirim Pesan Ke (Tujuan) <span className="text-destructive">*</span></Label>
                 <Select value={form.target_id} onValueChange={(v) => setForm((f) => ({ ...f, target_id: v }))}>
-                  <SelectTrigger id="rule-target">
-                    <SelectValue placeholder="Pilih target..." />
+                  <SelectTrigger id="rule-target" className="rounded-xl bg-background/50">
+                    <SelectValue placeholder="Pilih grup/channel tujuan..." />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {targets.map((t) => (
-                      <SelectItem key={t.id} value={t.id}>
+                      <SelectItem key={t.id} value={t.id} className="rounded-lg">
                         {t.title ?? t.chat_id} ({t.chat_id})
                       </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="rule-mode">Mode Forward</Label>
+              <div className="space-y-2">
+                <Label htmlFor="rule-mode">Mode Pengiriman</Label>
                 <Select value={form.mode} onValueChange={(v) => setForm((f) => ({ ...f, mode: v }))}>
-                  <SelectTrigger id="rule-mode">
+                  <SelectTrigger id="rule-mode" className="rounded-xl bg-background/50">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {MODE_OPTIONS.map((m) => (
-                      <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                      <SelectItem key={m.value} value={m.value} className="rounded-lg">{m.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground mt-1">Gunakan "Salin Saja" jika Anda ingin meneruskan pesan dari bot lain melalui Private Chat.</p>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="rule-priority">Prioritas (lebih tinggi = diproses lebih dulu)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="rule-priority">Prioritas (Angka lebih besar = dijalankan duluan)</Label>
                 <Input
                   id="rule-priority"
                   type="number"
+                  className="rounded-xl bg-background/50"
                   value={form.priority ?? 100}
                   onChange={(e) => setForm((f) => ({ ...f, priority: Number(e.target.value) }))}
                 />
               </div>
-              {bool("is_active")}
+              {bool("is_active", "Langsung aktifkan aturan ini")}
             </TabsContent>
 
             {/* TAB: Filter */}
-            <TabsContent value="filter" className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                {bool("allow_text")}
-                {bool("allow_media")}
-                {bool("allow_links")}
-                {bool("allow_forwarded")}
+            <TabsContent value="filter" className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {bool("allow_text", "Izinkan Pesan Teks")}
+                {bool("allow_media", "Izinkan Foto/Video/Media")}
+                {bool("allow_links", "Izinkan Tautan (Link)")}
+                {bool("allow_forwarded", "Izinkan Pesan Terusan (Forward)")}
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="rule-kw-include">Keyword Include (pisah koma)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="rule-kw-include">Kata Kunci Wajib Ada (Pisahkan dengan koma)</Label>
                 <Textarea
                   id="rule-kw-include"
                   rows={2}
-                  placeholder="berita, breaking, update"
+                  className="rounded-xl bg-background/50"
+                  placeholder="berita, darurat, promo"
                   value={kwInclude}
                   onChange={(e) => setKwInclude(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">Pesan hanya di-forward jika mengandung salah satu kata ini.</p>
+                <p className="text-xs text-muted-foreground">Pesan hanya akan dikirim jika mengandung salah satu kata di atas. Kosongkan jika tidak perlu.</p>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="rule-kw-exclude">Keyword Exclude (pisah koma)</Label>
+              <div className="space-y-2">
+                <Label htmlFor="rule-kw-exclude">Kata Kunci Terlarang (Pisahkan dengan koma)</Label>
                 <Textarea
                   id="rule-kw-exclude"
                   rows={2}
-                  placeholder="spam, iklan, promosi"
+                  className="rounded-xl bg-background/50"
+                  placeholder="spam, iklan, diskon palsu"
                   value={kwExclude}
                   onChange={(e) => setKwExclude(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">Pesan tidak di-forward jika mengandung salah satu kata ini.</p>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="rule-min-len">Min panjang teks (0 = nonaktif)</Label>
-                  <Input
-                    id="rule-min-len"
-                    type="number"
-                    min={0}
-                    value={form.min_len ?? 0}
-                    onChange={(e) => setForm((f) => ({ ...f, min_len: Number(e.target.value) }))}
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="rule-max-len">Max panjang teks (0 = nonaktif)</Label>
-                  <Input
-                    id="rule-max-len"
-                    type="number"
-                    min={0}
-                    value={form.max_len ?? 0}
-                    onChange={(e) => setForm((f) => ({ ...f, max_len: Number(e.target.value) }))}
-                  />
-                </div>
+                <p className="text-xs text-muted-foreground">Pesan <strong>tidak</strong> akan dikirim jika mengandung kata di atas.</p>
               </div>
             </TabsContent>
 
             {/* TAB: Transformasi */}
-            <TabsContent value="transform" className="space-y-4">
-              <div className="space-y-1">
-                <Label htmlFor="rule-header">Header Template</Label>
+            <TabsContent value="transform" className="space-y-5">
+              <div className="space-y-2">
+                <Label htmlFor="rule-header">Tambahkan Teks di Atas Pesan (Header)</Label>
                 <Textarea
                   id="rule-header"
                   rows={2}
-                  placeholder="📢 Dari {source_title} — {date}"
+                  className="rounded-xl bg-background/50"
+                  placeholder="📢 Dari: {source_title}"
                   value={form.header_template ?? ""}
                   onChange={(e) => setForm((f) => ({ ...f, header_template: e.target.value }))}
                 />
                 <p className="text-xs text-muted-foreground">
-                  Variabel: {"{source_title}"}, {"{source_id}"}, {"{date}"}, {"{sender_initial}"}
+                  Gunakan variabel: {"{source_title}"}, {"{source_id}"}, {"{date}"}, {"{sender_initial}"}
                 </p>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="rule-footer">Footer Template</Label>
+              <div className="space-y-2">
+                <Label htmlFor="rule-footer">Tambahkan Teks di Bawah Pesan (Footer)</Label>
                 <Textarea
                   id="rule-footer"
                   rows={2}
-                  placeholder="— Diteruskan otomatis"
+                  className="rounded-xl bg-background/50"
+                  placeholder="— Pesan ini otomatis dikirim oleh ReSender"
                   value={form.footer_template ?? ""}
                   onChange={(e) => setForm((f) => ({ ...f, footer_template: e.target.value }))}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                {bool("strip_mentions")}
-                {bool("strip_links")}
-                {bool("strip_usernames")}
-                {bool("strip_phone")}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {bool("strip_mentions", "Hapus Mention (@username)")}
+                {bool("strip_links", "Hapus Semua Link")}
+                {bool("strip_usernames", "Hapus Username")}
+                {bool("strip_phone", "Hapus Nomor Telepon")}
               </div>
             </TabsContent>
 
             {/* TAB: Rate Limit */}
-            <TabsContent value="ratelimit" className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label htmlFor="rule-cooldown">Cooldown (detik, 0 = nonaktif)</Label>
+            <TabsContent value="ratelimit" className="space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="rule-cooldown">Jeda Antar Pesan (detik)</Label>
                   <Input
                     id="rule-cooldown"
                     type="number"
                     min={0}
+                    className="rounded-xl bg-background/50"
+                    placeholder="Contoh: 10"
                     value={form.cooldown_seconds ?? 0}
                     onChange={(e) => setForm((f) => ({ ...f, cooldown_seconds: Number(e.target.value) }))}
                   />
+                  <p className="text-xs text-muted-foreground">0 = Tidak ada jeda</p>
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="rule-qpm">Quota per menit (0 = nonaktif)</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="rule-qpm">Maksimal Pesan Per Menit</Label>
                   <Input
                     id="rule-qpm"
                     type="number"
                     min={0}
+                    className="rounded-xl bg-background/50"
                     value={form.quota_per_minute ?? 0}
                     onChange={(e) => setForm((f) => ({ ...f, quota_per_minute: Number(e.target.value) }))}
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="rule-qph">Quota per jam (0 = nonaktif)</Label>
+                <div className="space-y-2">
+                  <Label htmlFor="rule-qph">Maksimal Pesan Per Jam</Label>
                   <Input
                     id="rule-qph"
                     type="number"
                     min={0}
+                    className="rounded-xl bg-background/50"
                     value={form.quota_per_hour ?? 0}
                     onChange={(e) => setForm((f) => ({ ...f, quota_per_hour: Number(e.target.value) }))}
                   />
                 </div>
-                <div className="space-y-1">
-                  <Label htmlFor="rule-qpd">Quota per hari (0 = nonaktif)</Label>
-                  <Input
-                    id="rule-qpd"
-                    type="number"
-                    min={0}
-                    value={form.quota_per_day ?? 0}
-                    onChange={(e) => setForm((f) => ({ ...f, quota_per_day: Number(e.target.value) }))}
-                  />
-                </div>
               </div>
-              <div className="space-y-1">
-                <Label htmlFor="rule-excess">Jika rate limit tercapai</Label>
+              <div className="space-y-2 pt-4">
+                <Label htmlFor="rule-excess">Jika Terlalu Banyak Pesan (Limit Tercapai):</Label>
                 <Select value={form.on_excess ?? "queue"} onValueChange={(v) => setForm((f) => ({ ...f, on_excess: v }))}>
-                  <SelectTrigger id="rule-excess">
+                  <SelectTrigger id="rule-excess" className="rounded-xl bg-background/50">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl">
                     {EXCESS_OPTIONS.map((o) => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      <SelectItem key={o.value} value={o.value} className="rounded-lg">{o.label}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -518,22 +500,20 @@ function RulesPage() {
             </TabsContent>
 
             {/* TAB: Pengiriman */}
-            <TabsContent value="delivery" className="space-y-4">
-              {bool("silent")}
-              {bool("protect_content")}
-              <p className="text-xs text-muted-foreground">
-                <strong>silent</strong>: pesan dikirim tanpa notifikasi suara.<br />
-                <strong>protect_content</strong>: mencegah penerima meneruskan/menyimpan pesan.
-              </p>
+            <TabsContent value="delivery" className="space-y-5">
+              <div className="space-y-4">
+                {bool("silent", "Kirim Tanpa Suara (Silent Notification)")}
+                {bool("protect_content", "Cegah Penerima Meneruskan Pesan (Protect Content)")}
+              </div>
             </TabsContent>
           </Tabs>
 
-          {err && <p className="text-sm text-destructive mt-2">{err}</p>}
+          {err && <p className="text-sm text-destructive font-medium mt-4">{err}</p>}
 
-          <DialogFooter className="mt-4">
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-            <Button type="button" disabled={saving || !form.source_id || !form.target_id} onClick={save}>
-              {saving ? "Menyimpan..." : "Simpan"}
+          <DialogFooter className="mt-8 gap-2 border-t border-border/50 pt-4">
+            <Button type="button" variant="ghost" className="rounded-xl hover:bg-muted/50" onClick={() => setOpen(false)}>Batal</Button>
+            <Button type="button" className="rounded-xl" disabled={saving || !form.source_id || !form.target_id} onClick={save}>
+              {saving ? "⏳ Menyimpan..." : "✅ Simpan Aturan"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -541,16 +521,16 @@ function RulesPage() {
 
       {/* Delete Confirm */}
       <AlertDialog open={!!delId} onOpenChange={(v) => !v && setDelId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl glass-card border-none">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Rule?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Rule ini akan dihapus permanen. Queue pesan yang masih pending untuk rule ini juga akan ikut terhapus.
+            <AlertDialogTitle className="text-2xl text-destructive flex items-center gap-2">⚠️ Hapus Aturan?</AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              Aturan ini akan dihapus permanen. Antrian pesan yang belum terkirim dari aturan ini juga akan dihapus.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={doDelete} className="bg-destructive text-destructive-foreground">Hapus</AlertDialogAction>
+          <AlertDialogFooter className="mt-6">
+            <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={doDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl">Ya, Hapus Permanen</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -45,7 +45,13 @@ type Source = {
   created_at: string;
 };
 
-const KIND_OPTIONS = ["group", "supergroup", "channel", "private", "bot"];
+const KIND_OPTIONS = [
+  { value: "group", label: "Grup" },
+  { value: "supergroup", label: "Supergrup" },
+  { value: "channel", label: "Channel" },
+  { value: "private", label: "Private Chat" },
+  { value: "bot", label: "Bot" }
+];
 
 function SourcesPage() {
   const [sources, setSources] = useState<Source[]>([]);
@@ -127,130 +133,143 @@ function SourcesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="glass-card p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Sources</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Kelola chat, grup, supergroup, channel, dan bot yang menjadi asal pesan Telegram.
-            Tambahkan chat_id sumber agar bot mau meneruskan pesannya.
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Sumber Pesan</h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
+            Tentukan dari mana bot harus "membaca" pesan. Ini bisa berupa grup, channel, atau private chat.
           </p>
         </div>
-        <Button id="btn-add-source" onClick={openAdd}>+ Tambah Source</Button>
+        <Button size="lg" className="rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform" onClick={openAdd}>
+          ➕ Tambah Sumber
+        </Button>
       </div>
 
-      {err && <p className="text-sm text-destructive">{err}</p>}
+      {err && <div className="p-4 rounded-xl bg-destructive/10 text-destructive border border-destructive/20">{err}</div>}
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Memuat...</p>
-      ) : sources.length === 0 ? (
-        <div className="border border-dashed border-border rounded-lg p-10 text-center text-sm text-muted-foreground">
-          Belum ada source. Klik <strong>+ Tambah Source</strong> untuk menambahkan.
-        </div>
-      ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Chat ID</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Judul</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Tipe</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {sources.map((s) => (
-                <tr key={s.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs">{s.chat_id}</td>
-                  <td className="px-4 py-3">{s.title ?? <span className="text-muted-foreground italic">—</span>}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant="outline">{s.kind ?? "—"}</Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge variant={s.is_active ? "default" : "secondary"}>
-                      {s.is_active ? "Aktif" : "Nonaktif"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => openEdit(s)}>Edit</Button>
-                    <Button size="sm" variant="outline" onClick={() => toggleActive(s)}>
-                      {s.is_active ? "Nonaktifkan" : "Aktifkan"}
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => setDelId(s.id)}>Hapus</Button>
-                  </td>
+      <div className="glass-card rounded-2xl overflow-hidden">
+        {loading ? (
+          <div className="p-10 text-center text-muted-foreground animate-pulse-subtle">
+            Memuat data...
+          </div>
+        ) : sources.length === 0 ? (
+          <div className="p-12 text-center flex flex-col items-center justify-center">
+            <div className="text-5xl mb-4 opacity-50">📥</div>
+            <h3 className="text-lg font-semibold mb-2">Belum ada sumber pesan</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">Tambahkan tempat bot membaca pesan terlebih dahulu.</p>
+            <Button variant="outline" onClick={openAdd} className="rounded-xl">Tambah Sekarang</Button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 border-b border-border/50">
+                <tr>
+                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">ID Chat</th>
+                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Nama / Judul</th>
+                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Tipe</th>
+                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Status</th>
+                  <th className="text-right px-6 py-4 font-semibold text-muted-foreground">Aksi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {sources.map((s) => (
+                  <tr key={s.id} className="hover:bg-accent/20 transition-colors group">
+                    <td className="px-6 py-4 font-mono text-xs opacity-70">{s.chat_id}</td>
+                    <td className="px-6 py-4 font-medium">{s.title ?? <span className="text-muted-foreground italic">Tanpa Nama</span>}</td>
+                    <td className="px-6 py-4">
+                      <Badge variant="outline" className="bg-background/50 backdrop-blur-sm rounded-lg capitalize">
+                        {KIND_OPTIONS.find(k => k.value === s.kind)?.label ?? s.kind ?? "—"}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4">
+                      <Badge variant={s.is_active ? "default" : "secondary"} className="rounded-lg shadow-sm">
+                        {s.is_active ? "🟢 Aktif" : "⚪ Nonaktif"}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-right flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button size="sm" variant="ghost" className="hover:bg-primary/10 rounded-lg" onClick={() => openEdit(s)}>✏️ Edit</Button>
+                      <Button size="sm" variant="ghost" className="hover:bg-accent/10 rounded-lg" onClick={() => toggleActive(s)}>
+                        {s.is_active ? "⏸️ Jeda" : "▶️ Lanjut"}
+                      </Button>
+                      <Button size="sm" variant="ghost" className="hover:bg-destructive/10 text-destructive rounded-lg" onClick={() => setDelId(s.id)}>🗑️ Hapus</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* Add/Edit Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-2xl glass-card border-none shadow-2xl">
           <DialogHeader>
-            <DialogTitle>{editId ? "Edit Source" : "Tambah Source"}</DialogTitle>
+            <DialogTitle className="text-2xl">{editId ? "Edit Sumber" : "Tambah Sumber Baru"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1">
-              <Label htmlFor="src-chat-id">Chat ID <span className="text-destructive">*</span></Label>
+          <div className="space-y-5 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="src-chat-id">ID Chat (Telegram) <span className="text-destructive">*</span></Label>
               <Input
                 id="src-chat-id"
                 type="number"
+                className="rounded-xl bg-background/50 focus-visible:ring-primary/50"
                 placeholder="-1001234567890"
                 value={form.chat_id ?? ""}
                 onChange={(e) => setForm((f) => ({ ...f, chat_id: e.target.value ? Number(e.target.value) : undefined }))}
               />
-              <p className="text-xs text-muted-foreground">Gunakan /whoami di bot untuk mendapatkan chat_id</p>
+              <p className="text-xs text-muted-foreground">Gunakan perintah `/info` di chat bersama bot untuk mengetahui ID-nya.</p>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="src-title">Judul / Nama</Label>
+            <div className="space-y-2">
+              <Label htmlFor="src-title">Nama Singkat / Label</Label>
               <Input
                 id="src-title"
-                placeholder="Contoh: Channel Berita"
+                className="rounded-xl bg-background/50 focus-visible:ring-primary/50"
+                placeholder="Contoh: Channel Berita Utama"
                 value={form.title ?? ""}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label htmlFor="src-kind">Tipe Chat</Label>
               <Select value={form.kind ?? "channel"} onValueChange={(v) => setForm((f) => ({ ...f, kind: v }))}>
-                <SelectTrigger id="src-kind">
+                <SelectTrigger id="src-kind" className="rounded-xl bg-background/50">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="rounded-xl">
                   {KIND_OPTIONS.map((k) => (
-                    <SelectItem key={k} value={k}>{k}</SelectItem>
+                    <SelectItem key={k.value} value={k.value} className="rounded-lg">{k.label}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="src-notes">Catatan</Label>
+            <div className="space-y-2">
+              <Label htmlFor="src-notes">Catatan Tambahan</Label>
               <Textarea
                 id="src-notes"
-                placeholder="Opsional, catatan internal"
+                className="rounded-xl bg-background/50 focus-visible:ring-primary/50"
+                placeholder="Hanya untuk pengingat Anda sendiri..."
                 value={form.notes ?? ""}
                 onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
                 rows={2}
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-background/20">
               <input
                 id="src-active"
                 type="checkbox"
                 checked={form.is_active ?? true}
                 onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
-                className="h-4 w-4"
+                className="h-4 w-4 rounded accent-primary"
               />
-              <Label htmlFor="src-active">Aktifkan source</Label>
+              <Label htmlFor="src-active" className="font-medium cursor-pointer">Langsung aktifkan sumber ini</Label>
             </div>
-            {err && <p className="text-sm text-destructive">{err}</p>}
+            {err && <p className="text-sm text-destructive font-medium">{err}</p>}
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-            <Button type="button" disabled={saving || !form.chat_id} onClick={save}>
-              {saving ? "Menyimpan..." : "Simpan"}
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="ghost" className="rounded-xl hover:bg-muted/50" onClick={() => setOpen(false)}>Batal</Button>
+            <Button type="button" className="rounded-xl" disabled={saving || !form.chat_id} onClick={save}>
+              {saving ? "⏳ Menyimpan..." : "✅ Simpan"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -258,16 +277,16 @@ function SourcesPage() {
 
       {/* Delete Confirm */}
       <AlertDialog open={!!delId} onOpenChange={(v) => !v && setDelId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl glass-card border-none">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Source?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Semua rules yang terkait source ini juga akan ikut terhapus (cascade). Tindakan ini tidak bisa dibatalkan.
+            <AlertDialogTitle className="text-2xl text-destructive flex items-center gap-2">⚠️ Hapus Sumber?</AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              Apabila sumber ini dihapus, <strong>semua aturan forward</strong> yang terhubung dengannya juga akan terhapus. Tindakan ini tidak bisa dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={doDelete} className="bg-destructive text-destructive-foreground">Hapus</AlertDialogAction>
+          <AlertDialogFooter className="mt-6">
+            <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={doDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl">Ya, Hapus Permanen</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

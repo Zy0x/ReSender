@@ -156,226 +156,195 @@ function SettingsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Kelola admin Telegram, konfigurasi webhook, dan cek status runtime.
+    <div className="space-y-6">
+      <div className="glass-card p-6 rounded-2xl">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Pengaturan Sistem</h1>
+        <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
+          Kelola administrator bot Telegram, konfigurasi jaringan webhook, dan pantau status kesehatan aplikasi ReSender.
         </p>
       </div>
 
-      {err && <p className="text-sm text-destructive">{err}</p>}
+      {err && <div className="p-4 rounded-xl bg-destructive/10 text-destructive border border-destructive/20">{err}</div>}
 
-      {/* Health Check */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-medium">Health Check</h2>
-        <Button id="btn-healthcheck" type="button" variant="outline" onClick={checkHealth}>
-          Cek Status Runtime
-        </Button>
-        {healthResult && (
-          <pre className="bg-muted rounded p-3 text-xs overflow-x-auto">{healthResult}</pre>
-        )}
-      </section>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Telegram Webhook Manager */}
+        <section className="glass-card p-6 rounded-2xl space-y-5 lg:row-span-2">
+          <div>
+            <h2 className="text-xl font-bold flex items-center gap-2">🔌 Koneksi Webhook Telegram</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Atur sambungan bot Anda dengan aplikasi ini. Bot token tidak akan disimpan, melainkan hanya digunakan saat tombol diklik.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="wh-bot-token">Token Bot (Dari @BotFather)</Label>
+              <Input
+                id="wh-bot-token"
+                type="password"
+                className="rounded-xl bg-background/50 focus-visible:ring-primary/50"
+                placeholder="123456:ABCDEFxxxx"
+                value={botToken}
+                onChange={(e) => setBotToken(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="wh-url">URL Aplikasi ReSender</Label>
+              <Input
+                id="wh-url"
+                type="url"
+                className="rounded-xl bg-background/50 focus-visible:ring-primary/50"
+                placeholder="https://your-app.example.com/api/public/tg/webhook"
+                value={webhookUrl}
+                onChange={(e) => setWebhookUrl(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="wh-secret">Kunci Rahasia (TELEGRAM_WEBHOOK_SECRET)</Label>
+              <Input
+                id="wh-secret"
+                type="password"
+                className="rounded-xl bg-background/50 focus-visible:ring-primary/50"
+                placeholder="Masukkan kata sandi rahasia"
+                value={webhookSecret}
+                onChange={(e) => setWebhookSecret(e.target.value)}
+              />
+            </div>
+          </div>
 
-      {/* Telegram Webhook Manager */}
-      <section className="space-y-4 border border-border rounded-lg p-5">
-        <h2 className="text-lg font-medium">Telegram Webhook Manager</h2>
-        <p className="text-sm text-muted-foreground">
-          Atur webhook bot langsung dari dashboard. Bot token tidak disimpan, hanya dipakai sementara di sesi ini.
-        </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <Label htmlFor="wh-bot-token">Bot Token (tidak disimpan)</Label>
-            <Input
-              id="wh-bot-token"
-              type="password"
-              placeholder="123456:ABCDEFxxxx"
-              value={botToken}
-              onChange={(e) => setBotToken(e.target.value)}
-            />
+          <div className="flex flex-wrap gap-3 pt-2">
+            <Button
+              id="btn-set-webhook"
+              type="button"
+              className="rounded-xl flex-1 shadow-lg shadow-primary/20"
+              disabled={!botToken || !webhookUrl || webhookLoading}
+              onClick={setWebhook}
+            >
+              Set Webhook
+            </Button>
+            <Button
+              id="btn-get-webhook-info"
+              type="button"
+              variant="outline"
+              className="rounded-xl flex-1"
+              disabled={!botToken || webhookLoading}
+              onClick={getWebhookInfo}
+            >
+              Info Webhook
+            </Button>
+            <Button
+              id="btn-delete-webhook"
+              type="button"
+              variant="destructive"
+              className="rounded-xl flex-1"
+              disabled={!botToken || webhookLoading}
+              onClick={deleteWebhook}
+            >
+              Hapus Webhook
+            </Button>
           </div>
-          <div className="space-y-1">
-            <Label htmlFor="wh-url">Webhook URL</Label>
-            <Input
-              id="wh-url"
-              type="url"
-              placeholder="https://your-app.example.com/api/public/tg/webhook"
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="wh-secret">Webhook Secret Token (TELEGRAM_WEBHOOK_SECRET)</Label>
-            <Input
-              id="wh-secret"
-              type="password"
-              placeholder="secret random string"
-              value={webhookSecret}
-              onChange={(e) => setWebhookSecret(e.target.value)}
-            />
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2 pt-1">
-          <Button
-            id="btn-set-webhook"
-            type="button"
-            disabled={!botToken || !webhookUrl || webhookLoading}
-            onClick={setWebhook}
-          >
-            Set Webhook
-          </Button>
-          <Button
-            id="btn-get-webhook-info"
-            type="button"
-            variant="outline"
-            disabled={!botToken || webhookLoading}
-            onClick={getWebhookInfo}
-          >
-            Info Webhook
-          </Button>
-          <Button
-            id="btn-delete-webhook"
-            type="button"
-            variant="destructive"
-            disabled={!botToken || webhookLoading}
-            onClick={deleteWebhook}
-          >
-            Hapus Webhook
-          </Button>
-        </div>
-        {webhookResult && (
-          <pre className="bg-muted rounded p-3 text-xs overflow-x-auto">{webhookResult}</pre>
-        )}
-        <div className="border-t border-border pt-3">
-          <h3 className="text-sm font-medium mb-2">Panduan Setup Webhook</h3>
-          <ol className="text-xs text-muted-foreground space-y-1 list-decimal list-inside">
-            <li>Deploy aplikasi ini ke Netlify, Cloudflare Workers, atau server publik dengan HTTPS.</li>
-            <li>Set semua env var dari <code>.env.example</code> di dashboard hosting (bukan .env).</li>
-            <li>Isi Bot Token (dari @BotFather) dan Webhook URL (URL deploy + /api/public/tg/webhook).</li>
-            <li>Isi Webhook Secret sesuai nilai <code>TELEGRAM_WEBHOOK_SECRET</code> di env.</li>
-            <li>Klik <strong>Set Webhook</strong>, lalu klik <strong>Info Webhook</strong> untuk verifikasi.</li>
-            <li>Tambahkan Source (chat_id sumber) dan Target (chat_id tujuan) di menu masing-masing.</li>
-            <li>Buat Rule yang menghubungkan Source ke Target dengan mode forward yang diinginkan.</li>
-          </ol>
-        </div>
-      </section>
 
-      {/* Telegram Admins */}
-      <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium">Telegram Admins</h2>
-          <Button id="btn-add-tg-admin" type="button" onClick={() => setAddAdminOpen(true)}>
-            + Tambah Admin Telegram
-          </Button>
-        </div>
-        <p className="text-sm text-muted-foreground">
-          Admin Telegram dapat menggunakan perintah bot seperti /addsource, /addrule, /list, dsb.
-          Dapatkan Telegram ID Anda dengan mengirim pesan ke bot lalu gunakan /whoami.
-        </p>
-        {loadingAdmins ? (
-          <p className="text-sm text-muted-foreground">Memuat...</p>
-        ) : tgAdmins.length === 0 ? (
-          <div className="border border-dashed border-border rounded-lg p-6 text-center text-sm text-muted-foreground">
-            Belum ada admin Telegram. Tambahkan Telegram ID Anda untuk menggunakan perintah bot.
-          </div>
-        ) : (
-          <div className="border border-border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Telegram ID</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Nama</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ditambahkan</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {tgAdmins.map((a) => (
-                  <tr key={a.telegram_user_id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs">{a.telegram_user_id}</td>
-                    <td className="px-4 py-3">{a.display_name ?? <span className="italic text-muted-foreground">—</span>}</td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {new Date(a.added_at).toLocaleString("id-ID")}
-                    </td>
-                    <td className="px-4 py-3">
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => setDelAdminId(a.telegram_user_id)}
-                      >
-                        Hapus
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
+          {webhookResult && (
+            <div className="bg-background/50 p-4 rounded-xl border border-primary/20 overflow-x-auto">
+              <pre className="text-xs text-muted-foreground">{webhookResult}</pre>
+            </div>
+          )}
 
-      {/* App Users (read-only) */}
-      <section className="space-y-3">
-        <h2 className="text-lg font-medium">Web Admin Users</h2>
-        <p className="text-sm text-muted-foreground">
-          Daftar akun yang dapat login ke dashboard. Untuk menambah, gunakan Supabase Auth + bootstrap endpoint.
-        </p>
-        {appUsers.length === 0 ? (
-          <div className="border border-dashed border-border rounded-lg p-6 text-center text-sm text-muted-foreground">
-            Belum ada app user terdaftar.
+          <div className="border-t border-border/50 pt-4 mt-6">
+            <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">📖 Panduan Singkat</h3>
+            <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside bg-muted/20 p-4 rounded-xl">
+              <li>Deploy aplikasi ini menggunakan HTTPS.</li>
+              <li>Isi <strong>Token Bot</strong> dan <strong>URL Aplikasi</strong> lengkap.</li>
+              <li>Pastikan <strong>Kunci Rahasia</strong> sama persis dengan yang ada di server Anda (file .env).</li>
+              <li>Klik <strong>Set Webhook</strong> dan bot Telegram Anda akan siap bekerja.</li>
+            </ol>
           </div>
-        ) : (
-          <div className="border border-border rounded-lg overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-muted/50">
-                <tr>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">User ID</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Role</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">Ditambahkan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {appUsers.map((u) => (
-                  <tr key={u.user_id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-4 py-3 font-mono text-xs truncate max-w-[200px]">{u.user_id}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={u.role === "admin" ? "default" : "secondary"}>{u.role}</Badge>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {new Date(u.added_at).toLocaleString("id-ID")}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        </section>
+
+        {/* Telegram Admins */}
+        <section className="glass-card p-6 rounded-2xl space-y-5">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2">🛡️ Admin Bot Telegram</h2>
+              <p className="text-sm text-muted-foreground mt-1">Daftar ID Telegram yang diizinkan memberi perintah ke bot.</p>
+            </div>
+            <Button id="btn-add-tg-admin" className="rounded-xl shadow-lg shadow-primary/20" type="button" onClick={() => setAddAdminOpen(true)}>
+              ➕ Tambah Admin
+            </Button>
           </div>
-        )}
-      </section>
+
+          <div className="rounded-xl border border-border/50 overflow-hidden bg-background/20">
+            {loadingAdmins ? (
+              <div className="p-8 text-center text-muted-foreground animate-pulse-subtle">Memuat admin...</div>
+            ) : tgAdmins.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground">Belum ada admin Telegram terdaftar.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/50">
+                    <tr>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground">ID Telegram</th>
+                      <th className="text-left px-4 py-3 font-semibold text-muted-foreground">Nama</th>
+                      <th className="text-right px-4 py-3 font-semibold text-muted-foreground">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border/50">
+                    {tgAdmins.map((a) => (
+                      <tr key={a.telegram_user_id} className="hover:bg-accent/20 transition-colors">
+                        <td className="px-4 py-3 font-mono text-xs">{a.telegram_user_id}</td>
+                        <td className="px-4 py-3 font-medium">{a.display_name ?? <span className="italic text-muted-foreground">Tanpa Nama</span>}</td>
+                        <td className="px-4 py-3 text-right">
+                          <Button size="sm" variant="ghost" className="text-destructive hover:bg-destructive/10 rounded-lg" onClick={() => setDelAdminId(a.telegram_user_id)}>
+                            Hapus
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Health Check */}
+        <section className="glass-card p-6 rounded-2xl space-y-4">
+          <div>
+            <h2 className="text-xl font-bold flex items-center gap-2">🩺 Status Kesehatan Sistem</h2>
+            <p className="text-sm text-muted-foreground mt-1">Periksa apakah database dan aplikasi berjalan normal.</p>
+          </div>
+          <Button id="btn-healthcheck" type="button" variant="outline" className="rounded-xl" onClick={checkHealth}>
+            🔍 Periksa Sekarang
+          </Button>
+          {healthResult && (
+            <div className="bg-background/50 p-4 rounded-xl border border-primary/20 overflow-x-auto mt-4">
+              <pre className="text-xs text-muted-foreground">{healthResult}</pre>
+            </div>
+          )}
+        </section>
+
+      </div>
 
       {/* Panduan Perintah Bot */}
-      <section className="border border-border rounded-lg p-5 space-y-3">
-        <h2 className="text-lg font-medium">Perintah Bot Telegram</h2>
-        <p className="text-sm text-muted-foreground">
-          Perintah bot dapat digunakan langsung di chat dengan bot oleh Telegram Admin yang terdaftar.
+      <section className="glass-card rounded-2xl p-6">
+        <h2 className="text-xl font-bold flex items-center gap-2 mb-2">🤖 Daftar Perintah Bot Telegram</h2>
+        <p className="text-sm text-muted-foreground mb-6">
+          Kirimkan perintah ini di chat langsung dengan bot Anda (hanya berfungsi bagi Admin terdaftar).
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {[
-            ["/whoami", "Lihat info diri Anda (chat_id, username)"],
-            ["/help", "Lihat daftar perintah"],
-            ["/addsource <chat_id> [title]", "Daftarkan source baru"],
-            ["/addtarget <chat_id> [title]", "Daftarkan target baru"],
-            ["/addrule <src_chat_id> <tgt_chat_id> [mode]", "Buat rule baru"],
-            ["/list rules|sources|targets", "Lihat daftar konfigurasi"],
-            ["/pause <rule_id>", "Pause rule"],
-            ["/resume <rule_id>", "Resume rule"],
-            ["/setmode <rule_id> <mode>", "Ubah mode forward"],
-            ["/setcooldown <rule_id> <detik>", "Set cooldown"],
-            ["/queue status", "Lihat status queue"],
-            ["/queue flush [rule_id]", "Reset failed queue"],
+            ["/sumber", "Lihat daftar sumber pesan"],
+            ["/tujuan", "Lihat daftar tujuan pesan"],
+            ["/aturan", "Lihat daftar aturan aktif"],
+            ["/antrian", "Lihat status antrian saat ini"],
+            ["/jeda", "Hentikan sementara (pause) suatu aturan"],
+            ["/lanjut", "Lanjutkan kembali (resume) aturan"],
+            ["/bantuan", "Tampilkan panduan penggunaan"],
+            ["/info", "Lihat ID chat Anda / grup ini"],
           ].map(([cmd, desc]) => (
-            <div key={cmd} className="flex gap-2">
-              <code className="font-mono text-primary whitespace-nowrap shrink-0">{cmd}</code>
-              <span className="text-muted-foreground">{desc}</span>
+            <div key={cmd} className="flex flex-col p-3 rounded-xl bg-background/50 border border-border/50 hover:bg-primary/5 transition-colors">
+              <code className="font-mono text-primary font-bold mb-1">{cmd}</code>
+              <span className="text-xs text-muted-foreground">{desc}</span>
             </div>
           ))}
         </div>
@@ -383,36 +352,38 @@ function SettingsPage() {
 
       {/* Add Admin Dialog */}
       <Dialog open={addAdminOpen} onOpenChange={setAddAdminOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-2xl glass-card border-none shadow-2xl">
           <DialogHeader>
-            <DialogTitle>Tambah Admin Telegram</DialogTitle>
+            <DialogTitle className="text-2xl">Tambah Admin Baru</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1">
-              <Label htmlFor="new-admin-id">Telegram User ID <span className="text-destructive">*</span></Label>
+          <div className="space-y-5 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-admin-id">ID Telegram Pengguna <span className="text-destructive">*</span></Label>
               <Input
                 id="new-admin-id"
                 type="number"
+                className="rounded-xl bg-background/50 focus-visible:ring-primary/50"
                 placeholder="123456789"
                 value={newAdminId}
                 onChange={(e) => setNewAdminId(e.target.value)}
               />
-              <p className="text-xs text-muted-foreground">Kirim /whoami ke bot untuk mendapatkan ID Anda.</p>
+              <p className="text-xs text-muted-foreground">Ketik <code>/info</code> di bot untuk mendapatkan ID Anda.</p>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="new-admin-name">Nama (opsional)</Label>
+            <div className="space-y-2">
+              <Label htmlFor="new-admin-name">Nama Panggilan (Opsional)</Label>
               <Input
                 id="new-admin-name"
-                placeholder="John Doe"
+                className="rounded-xl bg-background/50 focus-visible:ring-primary/50"
+                placeholder="Misal: Bos Besar"
                 value={newAdminName}
                 onChange={(e) => setNewAdminName(e.target.value)}
               />
             </div>
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setAddAdminOpen(false)}>Batal</Button>
-            <Button type="button" disabled={!newAdminId || savingAdmin} onClick={addTgAdmin}>
-              {savingAdmin ? "Menyimpan..." : "Tambahkan"}
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="ghost" className="rounded-xl" onClick={() => setAddAdminOpen(false)}>Batal</Button>
+            <Button type="button" className="rounded-xl" disabled={!newAdminId || savingAdmin} onClick={addTgAdmin}>
+              {savingAdmin ? "⏳ Menyimpan..." : "✅ Tambahkan"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -420,17 +391,17 @@ function SettingsPage() {
 
       {/* Delete Admin Confirm */}
       <AlertDialog open={delAdminId !== null} onOpenChange={(v) => !v && setDelAdminId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl glass-card border-none shadow-2xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Admin Telegram?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Admin dengan ID <strong>{delAdminId}</strong> tidak akan bisa menggunakan perintah bot lagi.
+            <AlertDialogTitle className="text-2xl text-destructive flex items-center gap-2">⚠️ Hapus Admin?</AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              Pengguna dengan ID <strong>{delAdminId}</strong> tidak akan bisa lagi menggunakan bot.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={deleteTgAdmin} className="bg-destructive text-destructive-foreground">
-              Hapus
+          <AlertDialogFooter className="mt-6 gap-2">
+            <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteTgAdmin} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl">
+              Ya, Cabut Akses
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

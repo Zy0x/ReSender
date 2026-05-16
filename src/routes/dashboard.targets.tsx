@@ -111,72 +111,81 @@ function TargetsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="glass-card p-6 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Targets</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Kelola chat, grup, supergroup, atau channel tujuan yang akan menerima pesan forward.
-            Bot harus sudah menjadi anggota/admin di target.
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Tujuan Pesan</h1>
+          <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
+            Tentukan ke mana bot harus mengirim (forward) pesan. Bot wajib sudah ditambahkan sebagai admin/anggota di chat tujuan ini.
           </p>
         </div>
-        <Button id="btn-add-target" onClick={openAdd}>+ Tambah Target</Button>
+        <Button size="lg" className="rounded-xl shadow-lg shadow-primary/20 hover:scale-105 transition-transform" onClick={openAdd}>
+          ➕ Tambah Tujuan
+        </Button>
       </div>
 
-      {err && <p className="text-sm text-destructive">{err}</p>}
+      {err && <div className="p-4 rounded-xl bg-destructive/10 text-destructive border border-destructive/20">{err}</div>}
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Memuat...</p>
-      ) : targets.length === 0 ? (
-        <div className="border border-dashed border-border rounded-lg p-10 text-center text-sm text-muted-foreground">
-          Belum ada target. Klik <strong>+ Tambah Target</strong> untuk menambahkan.
-        </div>
-      ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-muted/50">
-              <tr>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Chat ID</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Judul</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Status</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {targets.map((t) => (
-                <tr key={t.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="px-4 py-3 font-mono text-xs">{t.chat_id}</td>
-                  <td className="px-4 py-3">{t.title ?? <span className="text-muted-foreground italic">—</span>}</td>
-                  <td className="px-4 py-3">
-                    <Badge variant={t.is_active ? "default" : "secondary"}>
-                      {t.is_active ? "Aktif" : "Nonaktif"}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3 flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => openEdit(t)}>Edit</Button>
-                    <Button size="sm" variant="outline" onClick={() => toggleActive(t)}>
-                      {t.is_active ? "Nonaktifkan" : "Aktifkan"}
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => setDelId(t.id)}>Hapus</Button>
-                  </td>
+      <div className="glass-card rounded-2xl overflow-hidden">
+        {loading ? (
+          <div className="p-10 text-center text-muted-foreground animate-pulse-subtle">
+            Memuat data...
+          </div>
+        ) : targets.length === 0 ? (
+          <div className="p-12 text-center flex flex-col items-center justify-center">
+            <div className="text-5xl mb-4 opacity-50">🎯</div>
+            <h3 className="text-lg font-semibold mb-2">Belum ada tujuan pesan</h3>
+            <p className="text-muted-foreground mb-6 max-w-md">Tentukan ke mana pesan akan diteruskan.</p>
+            <Button variant="outline" onClick={openAdd} className="rounded-xl">Tambah Sekarang</Button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 border-b border-border/50">
+                <tr>
+                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">ID Chat</th>
+                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Nama / Judul</th>
+                  <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Status</th>
+                  <th className="text-right px-6 py-4 font-semibold text-muted-foreground">Aksi</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+              </thead>
+              <tbody className="divide-y divide-border/50">
+                {targets.map((t) => (
+                  <tr key={t.id} className="hover:bg-accent/20 transition-colors group">
+                    <td className="px-6 py-4 font-mono text-xs opacity-70">{t.chat_id}</td>
+                    <td className="px-6 py-4 font-medium">{t.title ?? <span className="text-muted-foreground italic">Tanpa Nama</span>}</td>
+                    <td className="px-6 py-4">
+                      <Badge variant={t.is_active ? "default" : "secondary"} className="rounded-lg shadow-sm">
+                        {t.is_active ? "🟢 Aktif" : "⚪ Nonaktif"}
+                      </Badge>
+                    </td>
+                    <td className="px-6 py-4 text-right flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button size="sm" variant="ghost" className="hover:bg-primary/10 rounded-lg" onClick={() => openEdit(t)}>✏️ Edit</Button>
+                      <Button size="sm" variant="ghost" className="hover:bg-accent/10 rounded-lg" onClick={() => toggleActive(t)}>
+                        {t.is_active ? "⏸️ Jeda" : "▶️ Lanjut"}
+                      </Button>
+                      <Button size="sm" variant="ghost" className="hover:bg-destructive/10 text-destructive rounded-lg" onClick={() => setDelId(t.id)}>🗑️ Hapus</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {/* Add/Edit Dialog */}
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md rounded-2xl glass-card border-none shadow-2xl">
           <DialogHeader>
-            <DialogTitle>{editId ? "Edit Target" : "Tambah Target"}</DialogTitle>
+            <DialogTitle className="text-2xl">{editId ? "Edit Tujuan" : "Tambah Tujuan Baru"}</DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 py-2">
-            <div className="space-y-1">
-              <Label htmlFor="tgt-chat-id">Chat ID <span className="text-destructive">*</span></Label>
+          <div className="space-y-5 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="tgt-chat-id">ID Chat (Telegram) <span className="text-destructive">*</span></Label>
               <Input
                 id="tgt-chat-id"
                 type="number"
+                className="rounded-xl bg-background/50 focus-visible:ring-primary/50"
                 placeholder="-1001234567890"
                 value={form.chat_id ?? ""}
                 onChange={(e) =>
@@ -184,34 +193,35 @@ function TargetsPage() {
                 }
               />
               <p className="text-xs text-muted-foreground">
-                Bot harus sudah di-invite ke grup/channel target. Gunakan /whoami untuk mendapatkan ID.
+                Bot wajib sudah menjadi anggota di chat ini. Gunakan perintah `/info` untuk melihat ID-nya.
               </p>
             </div>
-            <div className="space-y-1">
-              <Label htmlFor="tgt-title">Judul / Nama</Label>
+            <div className="space-y-2">
+              <Label htmlFor="tgt-title">Nama Singkat / Label</Label>
               <Input
                 id="tgt-title"
-                placeholder="Contoh: Grup Forward Utama"
+                className="rounded-xl bg-background/50 focus-visible:ring-primary/50"
+                placeholder="Contoh: Grup Arsip Utama"
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               />
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-background/20">
               <input
                 id="tgt-active"
                 type="checkbox"
                 checked={form.is_active}
                 onChange={(e) => setForm((f) => ({ ...f, is_active: e.target.checked }))}
-                className="h-4 w-4"
+                className="h-4 w-4 rounded accent-primary"
               />
-              <Label htmlFor="tgt-active">Aktifkan target</Label>
+              <Label htmlFor="tgt-active" className="font-medium cursor-pointer">Langsung aktifkan tujuan ini</Label>
             </div>
-            {err && <p className="text-sm text-destructive">{err}</p>}
+            {err && <p className="text-sm text-destructive font-medium">{err}</p>}
           </div>
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setOpen(false)}>Batal</Button>
-            <Button type="button" disabled={saving || !form.chat_id} onClick={save}>
-              {saving ? "Menyimpan..." : "Simpan"}
+          <DialogFooter className="gap-2">
+            <Button type="button" variant="ghost" className="rounded-xl hover:bg-muted/50" onClick={() => setOpen(false)}>Batal</Button>
+            <Button type="button" className="rounded-xl" disabled={saving || !form.chat_id} onClick={save}>
+              {saving ? "⏳ Menyimpan..." : "✅ Simpan"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -219,16 +229,16 @@ function TargetsPage() {
 
       {/* Delete Confirm */}
       <AlertDialog open={!!delId} onOpenChange={(v) => !v && setDelId(null)}>
-        <AlertDialogContent>
+        <AlertDialogContent className="rounded-2xl glass-card border-none">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Target?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Semua rules yang menggunakan target ini juga akan terhapus (cascade). Tindakan tidak bisa dibatalkan.
+            <AlertDialogTitle className="text-2xl text-destructive flex items-center gap-2">⚠️ Hapus Tujuan?</AlertDialogTitle>
+            <AlertDialogDescription className="text-base">
+              Apabila tujuan ini dihapus, <strong>semua aturan forward</strong> yang mengirim ke tujuan ini juga akan otomatis terhapus. Tindakan tidak bisa dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={doDelete} className="bg-destructive text-destructive-foreground">Hapus</AlertDialogAction>
+          <AlertDialogFooter className="mt-6">
+            <AlertDialogCancel className="rounded-xl">Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={doDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl">Ya, Hapus Permanen</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

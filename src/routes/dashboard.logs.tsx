@@ -84,132 +84,148 @@ function LogsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold">Logs</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Lihat log pesan yang diterima bot dan log audit perubahan konfigurasi.
+      <div className="glass-card p-6 rounded-2xl">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">Riwayat Aktivitas (Logs)</h1>
+        <p className="mt-2 text-sm text-muted-foreground max-w-2xl">
+          Pantau riwayat pesan masuk yang diterima bot, serta catatan rekam jejak (audit) untuk semua perubahan konfigurasi yang pernah terjadi.
         </p>
       </div>
 
-      <Tabs defaultValue="message">
-        <TabsList>
-          <TabsTrigger value="message">Message Log</TabsTrigger>
-          <TabsTrigger value="audit">Audit Log</TabsTrigger>
+      <Tabs defaultValue="message" className="w-full">
+        <TabsList className="bg-background/50 p-1 rounded-xl flex max-w-sm mb-6 glass-card">
+          <TabsTrigger value="message" className="rounded-lg flex-1">Riwayat Pesan</TabsTrigger>
+          <TabsTrigger value="audit" className="rounded-lg flex-1">Rekam Jejak (Audit)</TabsTrigger>
         </TabsList>
 
         {/* Message Log */}
-        <TabsContent value="message" className="space-y-4 mt-4">
-          <div className="flex gap-3 items-end">
-            <div className="space-y-1">
-              <Label htmlFor="msg-search">Filter by Source Chat ID</Label>
-              <Input
-                id="msg-search"
-                type="number"
-                placeholder="-1001234567890"
-                className="w-52"
-                value={msgSearch}
-                onChange={(e) => setMsgSearch(e.target.value)}
-              />
+        <TabsContent value="message" className="space-y-4">
+          <div className="glass-card p-6 rounded-2xl space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="space-y-2 flex-1 max-w-xs">
+                <Label htmlFor="msg-search">Cari ID Chat Sumber</Label>
+                <Input
+                  id="msg-search"
+                  type="number"
+                  placeholder="-1001234567890"
+                  className="rounded-xl bg-background/50 focus-visible:ring-primary/50 w-full"
+                  value={msgSearch}
+                  onChange={(e) => setMsgSearch(e.target.value)}
+                />
+              </div>
+              <Button type="button" variant="secondary" className="rounded-xl shadow-md" onClick={loadMsg}>🔄 Segarkan Data</Button>
             </div>
-            <Button type="button" variant="outline" onClick={loadMsg}>Refresh</Button>
+
+            {msgErr && <div className="p-4 rounded-xl bg-destructive/10 text-destructive border border-destructive/20">{msgErr}</div>}
+
+            <div className="rounded-xl border border-border/50 overflow-hidden bg-background/20 mt-4">
+              {loadingMsg ? (
+                <div className="p-16 text-center text-muted-foreground animate-pulse-subtle">Memuat riwayat pesan...</div>
+              ) : msgLogs.length === 0 ? (
+                <div className="p-16 text-center flex flex-col items-center justify-center">
+                  <div className="text-5xl mb-4 opacity-30">📨</div>
+                  <h3 className="text-lg font-semibold mb-2">Belum ada riwayat pesan</h3>
+                  <p className="text-muted-foreground max-w-sm text-sm">Pastikan bot sudah berfungsi dan tergabung di dalam grup/channel sumber.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50 border-b border-border/50">
+                      <tr>
+                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground">ID Database</th>
+                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground">ID Update (Telegram)</th>
+                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Sumber Chat</th>
+                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground">ID Pesan</th>
+                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Waktu Diterima</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      {msgLogs.map((l) => (
+                        <tr key={l.id} className="hover:bg-accent/20 transition-colors">
+                          <td className="px-6 py-4 font-mono text-xs opacity-70">#{l.id}</td>
+                          <td className="px-6 py-4 font-mono text-xs">{l.update_id ?? "—"}</td>
+                          <td className="px-6 py-4 font-mono text-xs text-primary">{l.source_chat_id ?? "—"}</td>
+                          <td className="px-6 py-4 font-mono text-xs">{l.source_msg_id ?? "—"}</td>
+                          <td className="px-6 py-4 text-xs text-muted-foreground font-medium">
+                            {new Date(l.received_at).toLocaleString("id-ID", {
+                              day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', second: '2-digit'
+                            })}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
-
-          {msgErr && <p className="text-sm text-destructive">{msgErr}</p>}
-
-          {loadingMsg ? (
-            <p className="text-sm text-muted-foreground">Memuat...</p>
-          ) : msgLogs.length === 0 ? (
-            <div className="border border-dashed border-border rounded-lg p-8 text-center text-sm text-muted-foreground">
-              Belum ada log pesan. Pastikan webhook bot sudah dikonfigurasi dan bot menerima pesan dari source.
-            </div>
-          ) : (
-            <div className="border border-border rounded-lg overflow-x-auto">
-              <table className="w-full text-sm min-w-[600px]">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">ID</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Update ID</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Source Chat</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Msg ID</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Diterima</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {msgLogs.map((l) => (
-                    <tr key={l.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs">{l.id}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{l.update_id ?? "—"}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{l.source_chat_id ?? "—"}</td>
-                      <td className="px-4 py-3 font-mono text-xs">{l.source_msg_id ?? "—"}</td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {new Date(l.received_at).toLocaleString("id-ID")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </TabsContent>
 
         {/* Audit Log */}
-        <TabsContent value="audit" className="space-y-4 mt-4">
-          <div className="flex gap-3 items-end">
-            <div className="space-y-1">
-              <Label htmlFor="audit-search">Cari (action / entity / actor)</Label>
-              <Input
-                id="audit-search"
-                className="w-64"
-                placeholder="addsource, pause..."
-                value={auditSearch}
-                onChange={(e) => setAuditSearch(e.target.value)}
-              />
+        <TabsContent value="audit" className="space-y-4">
+          <div className="glass-card p-6 rounded-2xl space-y-4">
+            <div className="flex flex-col sm:flex-row gap-4 items-end">
+              <div className="space-y-2 flex-1 max-w-sm">
+                <Label htmlFor="audit-search">Cari Aktivitas (Tindakan / Pelaku / Entitas)</Label>
+                <Input
+                  id="audit-search"
+                  className="rounded-xl bg-background/50 focus-visible:ring-primary/50 w-full"
+                  placeholder="Ketik kata kunci pencarian..."
+                  value={auditSearch}
+                  onChange={(e) => setAuditSearch(e.target.value)}
+                />
+              </div>
+              <Button type="button" variant="secondary" className="rounded-xl shadow-md" onClick={loadAudit}>🔄 Segarkan Data</Button>
             </div>
-            <Button type="button" variant="outline" onClick={loadAudit}>Refresh</Button>
+
+            {auditErr && <div className="p-4 rounded-xl bg-destructive/10 text-destructive border border-destructive/20">{auditErr}</div>}
+
+            <div className="rounded-xl border border-border/50 overflow-hidden bg-background/20 mt-4">
+              {loadingAudit ? (
+                <div className="p-16 text-center text-muted-foreground animate-pulse-subtle">Memuat rekam jejak...</div>
+              ) : auditLogs.length === 0 ? (
+                <div className="p-16 text-center flex flex-col items-center justify-center">
+                  <div className="text-5xl mb-4 opacity-30">🕵️</div>
+                  <h3 className="text-lg font-semibold mb-2">Belum ada rekam jejak</h3>
+                  <p className="text-muted-foreground max-w-sm text-sm">Semua perubahan pengaturan dari Web maupun Bot akan tercatat di sini.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm min-w-[900px]">
+                    <thead className="bg-muted/50 border-b border-border/50">
+                      <tr>
+                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Waktu</th>
+                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Pelaku (Aktor)</th>
+                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Tindakan</th>
+                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Objek Terkait</th>
+                        <th className="text-left px-6 py-4 font-semibold text-muted-foreground">Detail (Perubahan)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/50">
+                      {auditLogs.map((l) => (
+                        <tr key={l.id} className="hover:bg-accent/20 transition-colors">
+                          <td className="px-6 py-4 text-xs text-muted-foreground font-medium">
+                            {new Date(l.created_at).toLocaleString("id-ID", {
+                              day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
+                            })}
+                          </td>
+                          <td className="px-6 py-4 font-medium text-xs">{l.actor ?? <span className="opacity-50">Sistem</span>}</td>
+                          <td className="px-6 py-4">
+                            <Badge variant="outline" className="bg-background/50 backdrop-blur-sm rounded-lg uppercase text-[10px]">
+                              {l.action}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 text-xs text-primary">{l.entity ? `${l.entity}:${l.entity_id}` : "—"}</td>
+                          <td className="px-6 py-4 text-xs font-mono max-w-[250px] truncate text-muted-foreground" title={l.diff ? JSON.stringify(l.diff, null, 2) : ""}>
+                            {l.diff ? JSON.stringify(l.diff).slice(0, 50) + "..." : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
-
-          {auditErr && <p className="text-sm text-destructive">{auditErr}</p>}
-
-          {loadingAudit ? (
-            <p className="text-sm text-muted-foreground">Memuat...</p>
-          ) : auditLogs.length === 0 ? (
-            <div className="border border-dashed border-border rounded-lg p-8 text-center text-sm text-muted-foreground">
-              Belum ada audit log. Perubahan konfigurasi via command Telegram akan muncul di sini.
-            </div>
-          ) : (
-            <div className="border border-border rounded-lg overflow-x-auto">
-              <table className="w-full text-sm min-w-[700px]">
-                <thead className="bg-muted/50">
-                  <tr>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">ID</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Actor</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Action</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Entity</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Diff</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Waktu</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {auditLogs.map((l) => (
-                    <tr key={l.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="px-4 py-3 font-mono text-xs">{l.id}</td>
-                      <td className="px-4 py-3 text-xs">{l.actor ?? "—"}</td>
-                      <td className="px-4 py-3">
-                        <Badge variant="outline">{l.action}</Badge>
-                      </td>
-                      <td className="px-4 py-3 text-xs">{l.entity ? `${l.entity}:${l.entity_id}` : "—"}</td>
-                      <td className="px-4 py-3 text-xs max-w-[200px] truncate font-mono" title={l.diff ? JSON.stringify(l.diff) : ""}>
-                        {l.diff ? JSON.stringify(l.diff).slice(0, 60) + "…" : "—"}
-                      </td>
-                      <td className="px-4 py-3 text-xs text-muted-foreground">
-                        {new Date(l.created_at).toLocaleString("id-ID")}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
         </TabsContent>
       </Tabs>
     </div>
