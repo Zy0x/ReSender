@@ -14,7 +14,7 @@ ALLOW_DELETE=true
 
 # Comma-separated paths. In blacklist mode, everything is mirrored except these.
 # Keep target automation/config/deploy files local to this repository.
-BLACKLIST_PATHS=.git/,.github/,.lovable/,.netlify/,node_modules/,dist/,build/,coverage/,.turbo/,supabase/.temp/,.env,.env.*,**/.env,**/.env.*,sync,/*.md
+BLACKLIST_PATHS=.git/,.github/,.lovable/,.netlify/,node_modules/,dist/,build/,coverage/,.turbo/,supabase/.temp/,.env,.env.*,**/.env,**/.env.*,sync,/*.md,supabase/
 
 # Used only when SYNC_MODE=whitelist.
 WHITELIST_PATHS=
