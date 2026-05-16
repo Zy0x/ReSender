@@ -1,6 +1,8 @@
 name: Sync from forward-master
 
 on:
+  repository_dispatch:
+    types: [forward-master-updated]
   workflow_dispatch:
     inputs:
       source_repository:
@@ -42,9 +44,14 @@ jobs:
       - name: Resolve sync config
         shell: bash
         env:
+          EVENT_NAME: ${{ github.event_name }}
           INPUT_SOURCE_REPOSITORY: ${{ github.event.inputs.source_repository }}
           INPUT_BRANCH_SELECTOR: ${{ github.event.inputs.branch_selector }}
           INPUT_DRY_RUN: ${{ github.event.inputs.dry_run }}
+          DISPATCH_SOURCE_REPOSITORY: ${{ github.event.client_payload.source_repository }}
+          DISPATCH_SOURCE_BRANCH: ${{ github.event.client_payload.source_branch }}
+          DISPATCH_SOURCE_SHA: ${{ github.event.client_payload.source_sha }}
+          DISPATCH_DRY_RUN: ${{ github.event.client_payload.dry_run }}
         run: |
           set -euo pipefail
 
@@ -91,8 +98,8 @@ jobs:
             return 0
           }
 
-          SOURCE_REPOSITORY="$(first_non_empty "$INPUT_SOURCE_REPOSITORY" "$(read_config SOURCE_REPOSITORY)")"
-          BRANCH_SELECTOR="$(first_non_empty "$INPUT_BRANCH_SELECTOR" "$(read_config BRANCH_SELECTOR)" "main")"
+          SOURCE_REPOSITORY="$(first_non_empty "$INPUT_SOURCE_REPOSITORY" "$DISPATCH_SOURCE_REPOSITORY" "$(read_config SOURCE_REPOSITORY)")"
+          BRANCH_SELECTOR="$(first_non_empty "$INPUT_BRANCH_SELECTOR" "$DISPATCH_SOURCE_BRANCH" "$(read_config BRANCH_SELECTOR)" "main")"
           SYNC_MODE="$(first_non_empty "$(read_config SYNC_MODE)" "blacklist")"
           ALLOW_DELETE="$(first_non_empty "$(read_config ALLOW_DELETE)" "true")"
           BLACKLIST_PATHS="$(first_non_empty "$(read_config BLACKLIST_PATHS)" ".git/,.github/,.lovable/,.netlify/,node_modules/,dist/,build/,coverage/,.turbo/,supabase/.temp/,.env,.env.*,**/.env,**/.env.*,sync,/*.md")"
@@ -100,7 +107,14 @@ jobs:
           COMMIT_PREFIX="$(first_non_empty "$(read_config COMMIT_PREFIX)" "chore: sync")"
           GIT_USER_NAME="$(first_non_empty "$(read_config GIT_USER_NAME)" "github-actions[bot]")"
           GIT_USER_EMAIL="$(first_non_empty "$(read_config GIT_USER_EMAIL)" "github-actions[bot]@users.noreply.github.com")"
-          DRY_RUN="$(first_non_empty "$INPUT_DRY_RUN" "true")"
+          DRY_RUN="$(first_non_empty "$INPUT_DRY_RUN" "$DISPATCH_DRY_RUN")"
+          if [ -z "$DRY_RUN" ]; then
+            if [ "$EVENT_NAME" = "repository_dispatch" ]; then
+              DRY_RUN="false"
+            else
+              DRY_RUN="true"
+            fi
+          fi
 
           if [[ ! "$SOURCE_REPOSITORY" =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]]; then
             echo "SOURCE_REPOSITORY harus berbentuk owner/repo: ${SOURCE_REPOSITORY:-<empty>}"
@@ -138,10 +152,12 @@ jobs:
             echo "GIT_USER_NAME=$GIT_USER_NAME"
             echo "GIT_USER_EMAIL=$GIT_USER_EMAIL"
             echo "DRY_RUN=$DRY_RUN"
+            echo "SOURCE_SHA=$DISPATCH_SOURCE_SHA"
           } >> "$GITHUB_ENV"
 
           echo "Source repository : $SOURCE_REPOSITORY"
           echo "Branch            : $BRANCH_SELECTOR"
+          echo "Source SHA        : ${DISPATCH_SOURCE_SHA:-<manual>}"
           echo "Mode              : $SYNC_MODE"
           echo "Allow delete      : $ALLOW_DELETE"
           echo "Dry run           : $DRY_RUN"

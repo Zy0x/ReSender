@@ -1,9 +1,8 @@
-# Default sync configuration for Zy0x/SIPENA-Dev.
+# Default sync configuration for Zy0x/ReSender.
 # Format: KEY=VALUE. The workflow parses this file safely; it is not sourced as shell.
 #
 # This file intentionally describes the default source project only. Manual
-# workflow inputs and repository_dispatch payloads can override these values
-# for project-to-project, org-to-project, project-to-org, or org-to-org sync.
+# workflow inputs and repository_dispatch payloads can override these values.
 
 SOURCE_REPOSITORY=Web-Modder/forward-master
 BRANCH_SELECTOR=main
