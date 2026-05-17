@@ -4,7 +4,6 @@ import { supabase } from "@/lib/tg/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -45,10 +44,7 @@ function SettingsPage() {
   const [loadingAdmins, setLoadingAdmins] = useState(true);
   const [healthResult, setHealthResult] = useState<string | null>(null);
   const [webhookUrl, setWebhookUrl] = useState("");
-  const [webhookLoading, setWebhookLoading] = useState(false);
-  const [webhookResult, setWebhookResult] = useState<string | null>(null);
   const [webhookSecret, setWebhookSecret] = useState("");
-  const [botToken, setBotToken] = useState("");
   const [err, setErr] = useState<string | null>(null);
 
   // Telegram admin CRUD
@@ -108,52 +104,8 @@ function SettingsPage() {
     }
   }
 
-  async function setWebhook() {
-    if (!webhookUrl || !botToken) return;
-    setWebhookLoading(true);
-    setWebhookResult(null);
-    try {
-      const params = new URLSearchParams({ url: webhookUrl });
-      if (webhookSecret) params.set("secret_token", webhookSecret);
-      const res = await fetch(
-        `https://api.telegram.org/bot${botToken}/setWebhook?${params.toString()}`,
-        { method: "POST" },
-      );
-      const json = await res.json();
-      setWebhookResult(JSON.stringify(json, null, 2));
-    } catch (e: any) {
-      setWebhookResult(`Error: ${e.message}`);
-    }
-    setWebhookLoading(false);
-  }
-
-  async function getWebhookInfo() {
-    if (!botToken) return;
-    setWebhookLoading(true);
-    setWebhookResult(null);
-    try {
-      const res = await fetch(`https://api.telegram.org/bot${botToken}/getWebhookInfo`);
-      const json = await res.json();
-      setWebhookResult(JSON.stringify(json, null, 2));
-    } catch (e: any) {
-      setWebhookResult(`Error: ${e.message}`);
-    }
-    setWebhookLoading(false);
-  }
-
-  async function deleteWebhook() {
-    if (!botToken) return;
-    setWebhookLoading(true);
-    setWebhookResult(null);
-    try {
-      const res = await fetch(`https://api.telegram.org/bot${botToken}/deleteWebhook`, { method: "POST" });
-      const json = await res.json();
-      setWebhookResult(JSON.stringify(json, null, 2));
-    } catch (e: any) {
-      setWebhookResult(`Error: ${e.message}`);
-    }
-    setWebhookLoading(false);
-  }
+  const setWebhookCommand = `npm run set-webhook -- --target=workers --url=${webhookUrl || "https://your-app.example.com/api/public/tg/webhook"}`;
+  const deleteWebhookCommand = "npm run delete-webhook -- --target=workers";
 
   return (
     <div className="space-y-6">
@@ -167,27 +119,21 @@ function SettingsPage() {
       {err && <div className="p-4 rounded-xl bg-destructive/10 text-destructive border border-destructive/20">{err}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Telegram Webhook Manager */}
+        {/* Telegram Webhook Setup */}
         <section className="glass-card p-6 rounded-2xl space-y-5 lg:row-span-2">
           <div>
             <h2 className="text-xl font-bold flex items-center gap-2">🔌 Koneksi Webhook Telegram</h2>
             <p className="text-sm text-muted-foreground mt-1">
-              Atur sambungan bot Anda dengan aplikasi ini. Bot token tidak akan disimpan, melainkan hanya digunakan saat tombol diklik.
+              Atur sambungan bot dari terminal/server agar token bot tidak pernah diketik di browser.
             </p>
+          </div>
+
+          <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-sm text-amber-800 dark:text-amber-300">
+            Jangan masukkan <strong>TELEGRAM_BOT_TOKEN</strong> di halaman web. Token hanya boleh berada di environment server
+            dan dipakai oleh script operasional.
           </div>
           
           <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="wh-bot-token">Token Bot (Dari @BotFather)</Label>
-              <Input
-                id="wh-bot-token"
-                type="password"
-                className="rounded-xl bg-background/50 focus-visible:ring-primary/50"
-                placeholder="123456:ABCDEFxxxx"
-                value={botToken}
-                onChange={(e) => setBotToken(e.target.value)}
-              />
-            </div>
             <div className="space-y-2">
               <Label htmlFor="wh-url">URL Aplikasi ReSender</Label>
               <Input
@@ -205,58 +151,31 @@ function SettingsPage() {
                 id="wh-secret"
                 type="password"
                 className="rounded-xl bg-background/50 focus-visible:ring-primary/50"
-                placeholder="Masukkan kata sandi rahasia"
+                placeholder="Opsional: isi untuk checklist lokal, jangan dibagikan"
                 value={webhookSecret}
                 onChange={(e) => setWebhookSecret(e.target.value)}
               />
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 pt-2">
-            <Button
-              id="btn-set-webhook"
-              type="button"
-              className="rounded-xl flex-1 shadow-lg shadow-primary/20"
-              disabled={!botToken || !webhookUrl || webhookLoading}
-              onClick={setWebhook}
-            >
-              Set Webhook
-            </Button>
-            <Button
-              id="btn-get-webhook-info"
-              type="button"
-              variant="outline"
-              className="rounded-xl flex-1"
-              disabled={!botToken || webhookLoading}
-              onClick={getWebhookInfo}
-            >
-              Info Webhook
-            </Button>
-            <Button
-              id="btn-delete-webhook"
-              type="button"
-              variant="destructive"
-              className="rounded-xl flex-1"
-              disabled={!botToken || webhookLoading}
-              onClick={deleteWebhook}
-            >
-              Hapus Webhook
-            </Button>
-          </div>
-
-          {webhookResult && (
-            <div className="bg-background/50 p-4 rounded-xl border border-primary/20 overflow-x-auto">
-              <pre className="text-xs text-muted-foreground">{webhookResult}</pre>
+          <div className="space-y-3 rounded-xl border border-border/50 bg-background/40 p-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Set webhook dari terminal</p>
+              <pre className="mt-2 overflow-x-auto rounded-lg bg-muted/60 p-3 text-xs text-foreground">{setWebhookCommand}</pre>
             </div>
-          )}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Hapus webhook jika perlu reset</p>
+              <pre className="mt-2 overflow-x-auto rounded-lg bg-muted/60 p-3 text-xs text-foreground">{deleteWebhookCommand}</pre>
+            </div>
+          </div>
 
           <div className="border-t border-border/50 pt-4 mt-6">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">📖 Panduan Singkat</h3>
             <ol className="text-sm text-muted-foreground space-y-2 list-decimal list-inside bg-muted/20 p-4 rounded-xl">
               <li>Deploy aplikasi ini menggunakan HTTPS.</li>
-              <li>Isi <strong>Token Bot</strong> dan <strong>URL Aplikasi</strong> lengkap.</li>
-              <li>Pastikan <strong>Kunci Rahasia</strong> sama persis dengan yang ada di server Anda (file .env).</li>
-              <li>Klik <strong>Set Webhook</strong> dan bot Telegram Anda akan siap bekerja.</li>
+              <li>Pastikan <strong>TELEGRAM_BOT_TOKEN</strong> dan <strong>TELEGRAM_WEBHOOK_SECRET</strong> sudah ada di environment server.</li>
+              <li>Jalankan command set webhook dari terminal proyek.</li>
+              <li>Gunakan tombol health check di kanan untuk memastikan runtime dan database sehat.</li>
             </ol>
           </div>
         </section>

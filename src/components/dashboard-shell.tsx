@@ -98,6 +98,31 @@ export function DashboardShell() {
           <Outlet />
         </div>
       </main>
+
+      <nav className="fixed inset-x-0 bottom-0 z-30 border-t border-border/60 bg-background/95 px-2 py-2 shadow-2xl backdrop-blur md:hidden">
+        <div className="grid grid-cols-7 gap-1">
+          {NAV.map((n) => {
+            const isActive =
+              n.to === "/dashboard" ? location.pathname === "/dashboard" : location.pathname.startsWith(n.to);
+
+            return (
+              <Link
+                key={n.to}
+                to={n.to}
+                aria-label={n.label}
+                className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-medium transition-colors ${
+                  isActive
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <span className="text-base leading-none">{n.icon}</span>
+                <span className="max-w-full truncate">{n.label.split(" ")[0]}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
     </div>
   );
 }

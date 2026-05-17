@@ -6,6 +6,15 @@ const RE_LINK = /\bhttps?:\/\/\S+|\bt\.me\/\S+/gi;
 const RE_USERNAME = /\b[a-z0-9_]{4,}\b/gi; // soft, paired with strip_usernames
 const RE_PHONE = /(\+?\d[\d \-()]{6,}\d)/g;
 
+function hasLink(text: string): boolean {
+  RE_LINK.lastIndex = 0;
+  return RE_LINK.test(text);
+}
+
+function keywordMatch(text: string, keyword: string): boolean {
+  return text.toLocaleLowerCase("id-ID").includes(keyword.toLocaleLowerCase("id-ID"));
+}
+
 export interface IncomingMessage {
   message_id: number;
   chat: { id: number; title?: string; type?: string };
@@ -38,17 +47,17 @@ export function passesFilter(m: IncomingMessage, r: Rule): { ok: boolean; reason
   if (!r.allow_text && isText && !isMedia) return { ok: false, reason: "text not allowed" };
   if (!r.allow_media && isMedia) return { ok: false, reason: "media not allowed" };
   if (!r.allow_forwarded && (m.forward_from || m.forward_origin)) return { ok: false, reason: "forwarded not allowed" };
-  if (!r.allow_links && RE_LINK.test(text)) return { ok: false, reason: "link not allowed" };
+  if (!r.allow_links && hasLink(text)) return { ok: false, reason: "link not allowed" };
   if (r.mode === "media_only" && !isMedia) return { ok: false, reason: "media_only" };
   if (r.mode === "text_only" && isMedia) return { ok: false, reason: "text_only" };
   if (r.min_len > 0 && text.length < r.min_len) return { ok: false, reason: "min_len" };
   if (r.max_len > 0 && text.length > r.max_len) return { ok: false, reason: "max_len" };
 
   for (const kw of r.keyword_exclude ?? []) {
-    if (kw && new RegExp(kw, "i").test(text)) return { ok: false, reason: `excluded:${kw}` };
+    if (kw && keywordMatch(text, kw)) return { ok: false, reason: `excluded:${kw}` };
   }
   if ((r.keyword_include ?? []).length > 0) {
-    const ok = r.keyword_include.some((kw) => kw && new RegExp(kw, "i").test(text));
+    const ok = r.keyword_include.some((kw) => kw && keywordMatch(text, kw));
     if (!ok) return { ok: false, reason: "no include match" };
   }
 

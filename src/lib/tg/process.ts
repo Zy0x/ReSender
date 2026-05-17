@@ -2,7 +2,7 @@
 // MIRROR of src/lib/tg/* — Deno-compatible single-file port.
 // Kept in sync manually. If you change one side, change the other.
 
-import type { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type ForwardMode =
   | "native_forward"
@@ -91,6 +91,15 @@ const RE_LINK = /\bhttps?:\/\/\S+|\bt\.me\/\S+/gi;
 const RE_USERNAME = /\b[a-z0-9_]{4,}\b/gi;
 const RE_PHONE = /(\+?\d[\d \-()]{6,}\d)/g;
 
+function hasLink(text: string) {
+  RE_LINK.lastIndex = 0;
+  return RE_LINK.test(text);
+}
+
+function keywordMatch(text: string, keyword: string) {
+  return text.toLocaleLowerCase("id-ID").includes(keyword.toLocaleLowerCase("id-ID"));
+}
+
 function hasMedia(m: IncomingMessage) {
   return !!(m.photo || m.video || m.document || m.audio || m.voice || m.sticker || m.animation);
 }
@@ -102,14 +111,14 @@ function passesFilter(m: IncomingMessage, r: Rule) {
   if (!r.allow_text && isText && !isMedia) return false;
   if (!r.allow_media && isMedia) return false;
   if (!r.allow_forwarded && (m.forward_from || m.forward_origin)) return false;
-  if (!r.allow_links && RE_LINK.test(text)) return false;
+  if (!r.allow_links && hasLink(text)) return false;
   if (r.mode === "media_only" && !isMedia) return false;
   if (r.mode === "text_only" && isMedia) return false;
   if (r.min_len > 0 && text.length < r.min_len) return false;
   if (r.max_len > 0 && text.length > r.max_len) return false;
-  for (const kw of r.keyword_exclude ?? []) if (kw && new RegExp(kw, "i").test(text)) return false;
+  for (const kw of r.keyword_exclude ?? []) if (kw && keywordMatch(text, kw)) return false;
   if ((r.keyword_include ?? []).length > 0) {
-    const ok = r.keyword_include.some((kw) => kw && new RegExp(kw, "i").test(text));
+    const ok = r.keyword_include.some((kw) => kw && keywordMatch(text, kw));
     if (!ok) return false;
   }
   if (r.schedule_window?.allow_hours?.length) {
@@ -297,7 +306,12 @@ async function handleCommand(
 
   if (cmd === "/info" || cmd === "/whoami") {
     await reply(
-      `ℹ️ *Informasi Chat*\n\n👤 *User ID:* \`${fromId}\`\n💬 *Chat ID:* \`${m.chat.id}\`\n🏷️ *Tipe:* \`${m.chat.type ?? "?"}\`\n👑 *Status Admin:* ${admin ? "✅ Ya" : "❌ Tidak"}`
+      `ℹ️ *Info ReSender*\n\n` +
+        `👤 User ID: \`${fromId}\`\n` +
+        `💬 Chat ID: \`${m.chat.id}\`\n` +
+        `🏷️ Tipe chat: \`${m.chat.type ?? "?"}\`\n` +
+        `👑 Akses admin: ${admin ? "✅ aktif" : "❌ tidak aktif"}\n\n` +
+        `Simpan Chat ID ini sebagai sumber atau tujuan di dashboard.`
     );
     return true;
   }
@@ -305,18 +319,24 @@ async function handleCommand(
 
   try {
     if (cmd === "/bantuan" || cmd === "/help") {
-      const helpText = `🛠️ *Panduan Penggunaan Bot*\n\n` +
-        `*Konfigurasi Dasar:*\n` +
-        `• /sumber \`<chat_id>\` \`[nama]\` - Daftarkan sumber pesan\n` +
-        `• /tujuan \`<chat_id>\` \`[nama]\` - Daftarkan tujuan pesan\n` +
-        `• /aturan \`<id_sumber>\` \`<id_tujuan>\` \`[mode]\` - Buat jalur forward\n\n` +
-        `*Manajemen:*\n` +
-        `• /mode \`<id_aturan>\` \`<mode>\` - Ubah mode\n` +
-        `• /jeda \`<id_aturan>\` - Hentikan sementara\n` +
-        `• /lanjut \`<id_aturan>\` - Aktifkan kembali\n\n` +
-        `*Informasi:*\n` +
-        `• /daftar \`[sumber|tujuan|aturan]\` - Lihat daftar konfigurasi\n` +
-        `• /antrian \`[status|hapus]\` - Cek pesan gagal/tunda`;
+      const helpText = `🛠️ *Panduan ReSender*\n\n` +
+        `*Setup cepat*\n` +
+        `1. Kirim /info di chat sumber dan tujuan untuk mendapatkan Chat ID.\n` +
+        `2. Daftarkan chat dengan /sumber dan /tujuan.\n` +
+        `3. Hubungkan keduanya dengan /aturan.\n\n` +
+        `*Perintah utama*\n` +
+        `• /info - tampilkan User ID dan Chat ID\n` +
+        `• /sumber \`<chat_id>\` \`[nama]\` - tambah sumber pesan\n` +
+        `• /tujuan \`<chat_id>\` \`[nama]\` - tambah tujuan pesan\n` +
+        `• /aturan \`<chat_id_sumber>\` \`<chat_id_tujuan>\` \`[mode]\`\n` +
+        `• /daftar \`sumber|tujuan|aturan\` - cek konfigurasi\n` +
+        `• /antrian \`status|hapus\` - cek atau bersihkan antrian\n\n` +
+        `*Mode pengiriman*\n` +
+        `• native_forward - forward asli Telegram\n` +
+        `• copy_hide_sender - salin tanpa atribusi pengirim\n` +
+        `• notify_only - kirim ringkasan saja\n` +
+        `• anonymize - salin dengan transformasi teks\n` +
+        `• media_only / text_only - filter tipe pesan`;
       await reply(helpText);
       return true;
     }
@@ -328,7 +348,7 @@ async function handleCommand(
         return true;
       }
       const { error } = await db.from("tg_sources").upsert({ chat_id: id, title }, { onConflict: "chat_id" });
-      await reply(error ? `❌ *Gagal menyimpan:*\n${error.message}` : `✅ *Sumber berhasil ditambahkan*\nID: \`${id}\``);
+      await reply(error ? `❌ *Sumber gagal disimpan*\n${error.message}` : `✅ *Sumber aktif*\n\nChat ID: \`${id}\`\nLabel: ${title ?? "Tanpa nama"}\n\nLanjutkan dengan /tujuan lalu /aturan.`);
       if (!error) await audit(db, `tg:${fromId}`, "source.upsert", "tg_sources", String(id));
       return true;
     }
@@ -340,7 +360,7 @@ async function handleCommand(
         return true;
       }
       const { error } = await db.from("tg_targets").upsert({ chat_id: id, title }, { onConflict: "chat_id" });
-      await reply(error ? `❌ *Gagal menyimpan:*\n${error.message}` : `✅ *Tujuan berhasil ditambahkan*\nID: \`${id}\``);
+      await reply(error ? `❌ *Tujuan gagal disimpan*\n${error.message}` : `✅ *Tujuan aktif*\n\nChat ID: \`${id}\`\nLabel: ${title ?? "Tanpa nama"}\n\nHubungkan sumber dan tujuan dengan /aturan.`);
       return true;
     }
     if (cmd === "/aturan" || cmd === "/addrule") {
@@ -357,7 +377,7 @@ async function handleCommand(
         return true;
       }
       const { data: r, error } = await db.from("tg_rules").upsert({ source_id: s.id, target_id: t.id, mode: fwd }, { onConflict: "source_id,target_id" }).select("id").maybeSingle();
-      await reply(error ? `❌ *Gagal membuat aturan:*\n${error.message}` : `✅ *Aturan berhasil dibuat!*\nID Aturan: \`${r?.id}\`\nMode: \`${fwd}\``);
+      await reply(error ? `❌ *Aturan gagal dibuat*\n${error.message}` : `✅ *Aturan forward siap*\n\nID: \`${r?.id}\`\nMode: \`${fwd}\`\nAlur: \`${src}\` ➜ \`${tgt}\``);
       return true;
     }
     if (cmd === "/mode" || cmd === "/setmode") {
